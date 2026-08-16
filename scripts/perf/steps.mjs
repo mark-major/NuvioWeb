@@ -136,7 +136,6 @@ async function runReps(page, cdp, stepId, repCount, repFn) {
 
 const STEPS = {
   async home_dpad_row(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_row", reps, async (i, warmup) => {
@@ -161,7 +160,6 @@ const STEPS = {
   },
 
   async home_dpad_rows(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_rows", reps, async (i, warmup) => {
@@ -186,7 +184,6 @@ const STEPS = {
   },
 
   async grid_seeall(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     if (!(await focusTo(page, ".home-seeall-card"))) {
       return { id: "grid_seeall", status: "skipped", reps: [], error: "no see-all card" };
@@ -222,7 +219,6 @@ const STEPS = {
   },
 
   async grid_library(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     await press(page, "ArrowLeft");
     if (!(await focusTo(page, '[data-action="gotoLibrary"]'))) {
@@ -260,7 +256,6 @@ const STEPS = {
   },
 
   async transition_detail(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "transition_detail", reps, async (i) => {
@@ -298,7 +293,6 @@ const STEPS = {
   },
 
   async transition_settings(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     return runReps(page, cdp, "transition_settings", reps, async (i) => {
       const segments = {};
@@ -336,7 +330,6 @@ const STEPS = {
   },
 
   async settings_theme_toggle(page, cdp, { reps, traceDir }) {
-    await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
     await press(page, "ArrowLeft");
     if (!(await focusTo(page, '[data-action="gotoSettings"]'))) {
@@ -383,10 +376,6 @@ const STEPS = {
     });
   }
 };
-
-function appUrl(page) {
-  return page.url().split("#")[0];
-}
 
 export async function runStep(page, cdp, stepId, { reps = 5, traceDir = null } = {}) {
   const fn = STEPS[stepId];
