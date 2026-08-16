@@ -128,6 +128,19 @@ export async function focusSidebarItem(page, action) {
   return false;
 }
 
+async function enterContentFromSidebar(page) {
+  for (let i = 0; i < 4; i++) {
+    const inSidebar = await page.evaluate(() => {
+      const el = document.querySelector(".focusable.focused");
+      return Boolean(el?.closest(".home-sidebar, .modern-sidebar-panel"));
+    });
+    if (!inSidebar) return true;
+    await press(page, "ArrowRight");
+    await sleep(400);
+  }
+  return false;
+}
+
 async function focusedKey(page) {
   return page.evaluate(() => {
     const el = document.querySelector(".focusable.focused");
@@ -314,6 +327,7 @@ const STEPS = {
     if (empty) {
       return { id: "grid_library", status: "skipped", reps: [], error: "library empty" };
     }
+    await enterContentFromSidebar(page);
     await sleep(2000);
     await focusTo(page, ".library-grid-card");
     return runReps(page, cdp, "grid_library", reps, async (i, warmup) => {
@@ -341,9 +355,9 @@ const STEPS = {
   async transition_detail(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
     await dismissOverlays(page);
-    await focusTo(page, ".home-poster-card, .home-continue-card");
+    await focusTo(page, '[data-action="openDetail"].home-poster-card, .home-continue-card');
     return runReps(page, cdp, "transition_detail", reps, async (i) => {
-      await focusTo(page, ".home-poster-card, .home-continue-card");
+      await focusTo(page, '[data-action="openDetail"].home-poster-card, .home-continue-card');
       const segments = {};
       segments.forward = await buildSegment(
         page,
@@ -427,6 +441,7 @@ const STEPS = {
     await press(page, "Enter");
     await page.waitForSelector(".settings-sidebar", { timeout: 20000 });
     await sleep(1500);
+    await enterContentFromSidebar(page);
     if (!(await focusTo(page, '[data-focus-key^="appearance:theme:"]'))) {
       return {
         id: "settings_theme_toggle",
@@ -436,6 +451,7 @@ const STEPS = {
       };
     }
     return runReps(page, cdp, "settings_theme_toggle", reps, async (i, warmup) => {
+      await enterContentFromSidebar(page);
       const segments = {};
       segments.main = await buildSegment(
         page,
