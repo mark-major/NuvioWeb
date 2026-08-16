@@ -13,9 +13,10 @@ export function compareRuns(a, b) {
       const aP50 = segA.p50 || 0;
       const bP50 = segB?.p50 || null;
       const deltaPct = bP50 === null ? null : aP50 > 0 ? ((bP50 - aP50) / aP50) * 100 : null;
-      rows.push({ id: stepA.id, segment, aP50, bP50, deltaPct });
+      const row = { id: stepA.id, segment, aP50, bP50, deltaPct };
+      rows.push(row);
       if (deltaPct !== null && deltaPct > 15 && bP50 > 20) {
-        regressions.push(rows[rows.length - 1]);
+        regressions.push(row);
       }
     }
   }
@@ -29,7 +30,7 @@ export function renderCompareHtml(diff, runA, runB) {
         `<tr><td>${r.id}</td><td>${r.segment}</td><td>${Math.round(
           r.aP50
         )}</td><td>${r.bP50 === null ? "—" : Math.round(r.bP50)}</td><td class="${
-          r.deltaPct > 15 ? "fail" : ""
+          r.deltaPct > 15 && r.bP50 > 20 ? "fail" : ""
         }">${r.deltaPct === null ? "—" : Math.round(r.deltaPct) + "%"}</td></tr>`
     )
     .join("");

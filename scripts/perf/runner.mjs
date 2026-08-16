@@ -102,8 +102,8 @@ export async function runProtocol(flags = {}) {
     }
   }
 
-  run.steps = run.steps.map((s) => (s.status === "ok" ? { ...s, agg: aggregateStep(s) } : s));
-  const display = { meta: run.meta, steps: run.steps.map((s) => s.agg || s) };
+  run.steps = run.steps.map((s) => (s.status === "ok" ? { ...s, ...aggregateStep(s) } : s));
+  const display = run;
   const { jsonPath, htmlPath } = await writeRunArtifacts(runDir, run);
   console.log("\n" + renderConsoleTable(display));
   console.log(`\nrun.json:   ${jsonPath}\nreport:     ${htmlPath}`);
