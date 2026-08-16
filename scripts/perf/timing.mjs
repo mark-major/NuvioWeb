@@ -37,7 +37,7 @@ export function buildInitScript() {
           interactionId: e.interactionId || 0
         });
       }
-    }).observe({ type: "event", buffered: false });
+    }).observe({ type: "event", buffered: false, durationThreshold: 16 });
     state.supported = true;
   } catch (_) { state.supported = false; }
   try {
