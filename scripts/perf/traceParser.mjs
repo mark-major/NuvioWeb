@@ -67,7 +67,7 @@ function selfTimes(events, start, end) {
     )
     .sort((a, b) => a.ts - b.ts || b.dur - a.dur);
   const phases = { ...EMPTY_PHASES };
-  const all = [];
+  const childDur = new Map();
   const stack = [];
   for (const e of inWindow) {
     while (stack.length && stack[stack.length - 1].ts + stack[stack.length - 1].dur <= e.ts) {
@@ -75,17 +75,15 @@ function selfTimes(events, start, end) {
     }
     if (stack.length) {
       const parent = stack[stack.length - 1];
-      parent.childDur = (parent.childDur || 0) + e.dur;
+      childDur.set(parent, (childDur.get(parent) || 0) + e.dur);
     }
-    e.childDur = e.childDur || 0;
     stack.push(e);
-    all.push(e);
   }
-  for (const e of all) {
+  for (const e of inWindow) {
     const phase = PHASE_BY_NAME[e.name] || "other";
-    phases[phase] += Math.max(0, e.dur - (e.childDur || 0));
+    phases[phase] += Math.max(0, e.dur - (childDur.get(e) || 0));
   }
-  return { phases, all };
+  return { phases, all: inWindow };
 }
 
 function parseProfiles(events, start, end) {
@@ -107,23 +105,36 @@ function parseProfiles(events, start, end) {
     }
   }
   if (!samples.length) return [];
-  const selfMs = new Map();
+  const perNode = new Map();
   let ts = baseTime;
   for (let i = 0; i < samples.length; i++) {
     ts += deltas[i] || 0;
     if (ts < start || ts >= end) continue;
     const nodeId = samples[i];
     if (!nodes.has(nodeId)) continue;
-    const frame = nodes.get(nodeId).callFrame || {};
-    const key = `${frame.functionName || "(anonymous)"}@${frame.url || ""}:${frame.lineNumber ?? -1}`;
-    selfMs.set(key, (selfMs.get(key) || 0) + (deltas[i] || 0) / 1000);
+    perNode.set(nodeId, (perNode.get(nodeId) || 0) + (deltas[i] || 0) / 1000);
   }
-  return [...selfMs.entries()]
-    .map(([key, ms]) => {
-      const [name, rest] = key.split("@");
-      const [url, line] = rest.split(":");
-      return { name, url, line: Number(line) + 1, selfMs: Math.round(ms * 10) / 10 };
-    })
+  const merged = new Map();
+  for (const [nodeId, ms] of perNode) {
+    const frame = nodes.get(nodeId).callFrame || {};
+    const name = frame.functionName || "(anonymous)";
+    const url = frame.url || "";
+    const line = Number(frame.lineNumber ?? -1);
+    const key = `${name}\u0000${url}\u0000${line}`;
+    const prev = merged.get(key);
+    if (prev) {
+      prev.ms += ms;
+    } else {
+      merged.set(key, { name, url, line, ms });
+    }
+  }
+  return [...merged.values()]
+    .map(({ name, url, line, ms }) => ({
+      name,
+      url,
+      line: line + 1,
+      selfMs: Math.round(ms * 10) / 10
+    }))
     .sort((a, b) => b.selfMs - a.selfMs)
     .slice(0, 10);
 }
@@ -132,14 +143,20 @@ export function parseTrace(
   traceJson,
   { startMark = "nuvio:step:start", endMark = "nuvio:step:end" } = {}
 ) {
-  const events = Array.isArray(traceJson?.traceEvents) ? traceJson.traceEvents : [];
+  const raw = Array.isArray(traceJson?.traceEvents) ? traceJson.traceEvents : [];
+  const events = raw.filter((e) => e && typeof e === "object");
   if (!events.length) return EMPTY_RESULT();
   const { start, end } = markWindow(events, startMark, endMark);
-  const windowStart =
-    start ?? Math.min(...events.filter((e) => typeof e.ts === "number").map((e) => e.ts));
-  const windowEnd =
-    end ??
-    Math.max(...events.filter((e) => typeof e.ts === "number").map((e) => e.ts + (e.dur || 0)));
+  let minTs = Infinity;
+  let maxEnd = -Infinity;
+  for (const e of events) {
+    if (typeof e.ts !== "number") continue;
+    if (e.ts < minTs) minTs = e.ts;
+    const eventEnd = e.ts + (e.dur || 0);
+    if (eventEnd > maxEnd) maxEnd = eventEnd;
+  }
+  const windowStart = start ?? minTs;
+  const windowEnd = end ?? maxEnd;
   if (!Number.isFinite(windowStart) || !Number.isFinite(windowEnd) || windowEnd <= windowStart) {
     return EMPTY_RESULT();
   }

@@ -84,3 +84,83 @@ test("parseTrace survives malformed input", () => {
   });
   assert.equal(parseTrace(null).windowMs, 0);
 });
+
+test("parseTrace is reusable, keeps URLs with colons, and tolerates nulls and large traces", () => {
+  // Fix 1: parsing the same trace object twice yields identical results.
+  const trace = fixtureTrace();
+  const first = parseTrace(trace);
+  const second = parseTrace(trace);
+  assert.deepEqual(second, first);
+  assert.equal(second.phases.script, 120);
+
+  // Fix 2: colons in callFrame urls survive the cpu-profile join.
+  const urlTrace = {
+    traceEvents: [
+      MARK_START,
+      MARK_END,
+      {
+        name: "Profile",
+        ph: "P",
+        ts: 900_000,
+        pid: 1,
+        tid: 1,
+        args: { data: { startTime: 900_000 } }
+      },
+      {
+        name: "ProfileChunk",
+        ph: "P",
+        ts: 1_050_000,
+        pid: 1,
+        tid: 1,
+        args: {
+          data: {
+            cpuProfile: {
+              nodes: [
+                {
+                  id: 9,
+                  callFrame: {
+                    functionName: "netFn",
+                    url: "http://localhost:5173/src/app.js",
+                    lineNumber: 7
+                  }
+                }
+              ],
+              samples: [9, 9]
+            },
+            timeDeltas: [100_000, 100_000]
+          }
+        }
+      }
+    ]
+  };
+  const urlResult = parseTrace(urlTrace);
+  assert.equal(urlResult.topFunctions[0].url, "http://localhost:5173/src/app.js");
+  assert.equal(urlResult.topFunctions[0].line, 8);
+  assert.equal(urlResult.topFunctions[0].selfMs, 200);
+
+  // Fix 3: null entries never throw; alone they yield the zeroed shape.
+  assert.deepEqual(parseTrace({ traceEvents: [null] }), {
+    windowMs: 0,
+    phases: { script: 0, style: 0, layout: 0, paint: 0, composite: 0, parse: 0, other: 0 },
+    topFunctions: [],
+    topEvents: []
+  });
+  const mixed = fixtureTrace();
+  mixed.traceEvents.unshift(null);
+  assert.equal(parseTrace(mixed).phases.script, 120);
+
+  // Fix 4: mark-less traces fall back to the whole span without spread overflow.
+  const big = {
+    traceEvents: Array.from({ length: 130_000 }, (_, i) => ({
+      name: "FunctionCall",
+      ph: "X",
+      ts: i * 100,
+      dur: 50,
+      pid: 1,
+      tid: 1
+    }))
+  };
+  const bigResult = parseTrace(big);
+  assert.equal(bigResult.windowMs, 13_000);
+  assert.equal(bigResult.phases.script, 6500);
+});
