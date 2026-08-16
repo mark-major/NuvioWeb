@@ -28,6 +28,12 @@ export function resolveSteps(spec) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const FOCUSED_EXPR = `(() => {
+  const candidates = Array.from(document.querySelectorAll(".focusable.focused"))
+    .filter((el) => el.offsetParent !== null || el === document.activeElement);
+  return candidates[0] || document.activeElement || null;
+})()`;
+
 export async function waitForAppReady(page, timeoutMs = 30000) {
   await page.waitForFunction(
     () =>
@@ -48,14 +54,16 @@ export async function waitForAppReady(page, timeoutMs = 30000) {
 
 export async function dismissOverlays(page, maxPresses = 6) {
   for (let i = 0; i < maxPresses; i++) {
-    const state = await page.evaluate(() => {
-      const focused = document.querySelector(".focusable.focused");
-      const inSidebar = Boolean(focused?.closest(".home-sidebar, .modern-sidebar-panel"));
-      const expanded = Boolean(
-        document.querySelector(".home-sidebar.expanded, .modern-sidebar-shell.expanded")
-      );
-      return inSidebar || expanded;
-    });
+    const state = await page.evaluate(
+      `(() => {
+        const focused = ${FOCUSED_EXPR};
+        const inSidebar = Boolean(focused?.closest(".home-sidebar, .modern-sidebar-panel"));
+        const expanded = Boolean(
+          document.querySelector(".home-sidebar.expanded, .modern-sidebar-shell.expanded")
+        );
+        return inSidebar || expanded;
+      })()`
+    );
     if (!state) return true;
     await press(page, "Escape");
     await sleep(400);
@@ -70,16 +78,20 @@ async function press(page, key) {
 
 export async function focusTo(page, selector, { maxPresses = 60, escape = true } = {}) {
   for (let i = 0; i < maxPresses; i++) {
-    const status = await page.evaluate((sel) => {
-      const focused = document.querySelector(".focusable.focused");
-      if (!focused || !focused.matches(sel)) return "no";
-      const row = focused.closest("[data-nav-row], .home-track, .home-row");
-      if (!row) return "ok";
-      const cards = Array.from(row.querySelectorAll(".focusable")).filter((n) => n.matches(sel));
-      if (cards.length <= 1) return "ok";
-      const idx = cards.indexOf(focused);
-      return idx >= 1 && idx <= 5 ? "ok" : "late";
-    }, selector);
+    const status = await page.evaluate(
+      `(() => {
+        const focused = ${FOCUSED_EXPR};
+        if (!focused || !focused.matches(${JSON.stringify(selector)})) return "no";
+        const row = focused.closest("[data-nav-row], .home-track, .home-row");
+        if (!row) return "ok";
+        const cards = Array.from(row.querySelectorAll(".focusable")).filter((n) =>
+          n.matches(${JSON.stringify(selector)})
+        );
+        if (cards.length <= 1) return "ok";
+        const idx = cards.indexOf(focused);
+        return idx >= 1 && idx <= 5 ? "ok" : "late";
+      })()`
+    );
     if (status === "ok") return true;
     await press(
       page,
@@ -94,28 +106,37 @@ export async function focusTo(page, selector, { maxPresses = 60, escape = true }
 }
 
 export async function focusSidebarItem(page, action) {
-  const atPoster = await page.evaluate(() => {
-    const el = document.querySelector(".focusable.focused");
-    return Boolean(
-      el?.matches(".home-poster-card, .home-continue-card") && Number(el.dataset?.navRow || 0) >= 1
-    );
-  });
+  const atPoster = await page.evaluate(
+    `(() => {
+      const el = ${FOCUSED_EXPR};
+      return Boolean(
+        el?.matches(".home-poster-card, .home-continue-card") &&
+          Number(el.dataset?.navRow || 0) >= 1
+      );
+    })()`
+  );
   if (!atPoster) {
     await focusTo(page, ".home-poster-card, .home-continue-card");
   }
   await press(page, "ArrowLeft");
   for (let i = 0; i < 12; i++) {
-    const state = await page.evaluate((act) => {
-      const focused = document.querySelector(".focusable.focused");
-      const inSidebar = Boolean(focused?.closest(".home-sidebar, .modern-sidebar-panel"));
-      const match = Boolean(inSidebar && focused?.dataset?.action === act);
-      const idx = Number(focused?.dataset?.navIndex || 0);
-      const target = document.querySelector(
-        `.home-sidebar .focusable[data-action="${act}"], .modern-sidebar-panel .focusable[data-action="${act}"]`
-      );
-      const targetIdx = Number(target?.dataset?.navIndex || 0);
-      return { match, idx, targetIdx };
-    }, action);
+    const state = await page.evaluate(
+      `(() => {
+        const focused = ${FOCUSED_EXPR};
+        const inSidebar = Boolean(focused?.closest(".home-sidebar, .modern-sidebar-panel"));
+        const match = Boolean(inSidebar && focused?.dataset?.action === ${JSON.stringify(action)});
+        const idx = Number(focused?.dataset?.navIndex || 0);
+        const target = document.querySelector(
+          ".home-sidebar .focusable[data-action=" +
+            ${JSON.stringify(action)} +
+            "], .modern-sidebar-panel .focusable[data-action=" +
+            ${JSON.stringify(action)} +
+            "]"
+        );
+        const targetIdx = Number(target?.dataset?.navIndex || 0);
+        return { match, idx, targetIdx };
+      })()`
+    );
     if (state.match) return true;
     if (state.idx < state.targetIdx) {
       await press(page, "ArrowDown");
@@ -130,10 +151,12 @@ export async function focusSidebarItem(page, action) {
 
 async function enterContentFromSidebar(page) {
   for (let i = 0; i < 4; i++) {
-    const inSidebar = await page.evaluate(() => {
-      const el = document.querySelector(".focusable.focused");
-      return Boolean(el?.closest(".home-sidebar, .modern-sidebar-panel"));
-    });
+    const inSidebar = await page.evaluate(
+      `(() => {
+        const el = ${FOCUSED_EXPR};
+        return Boolean(el?.closest(".home-sidebar, .modern-sidebar-panel"));
+      })()`
+    );
     if (!inSidebar) return true;
     await press(page, "ArrowRight");
     await sleep(400);
@@ -142,38 +165,48 @@ async function enterContentFromSidebar(page) {
 }
 
 async function focusedKey(page) {
-  return page.evaluate(() => {
-    const el = document.querySelector(".focusable.focused");
-    if (!el) return null;
-    const row = el.closest("[data-row-key]");
-    const cards = Array.from(
-      document.querySelectorAll(".home-poster-card, .home-continue-card, .home-hero-card")
-    );
-    const identity =
-      el.getAttribute("data-item-id") ||
-      el.getAttribute("data-focus-key") ||
-      el.getAttribute("data-see-all-id") ||
-      "idx:" + cards.indexOf(el) + ":" + el.className;
-    return `${identity}@${row?.getAttribute("data-row-key") || ""}`;
-  });
+  return page.evaluate(
+    `(() => {
+      const el = ${FOCUSED_EXPR};
+      if (!el) return null;
+      const row = el.closest("[data-row-key]");
+      const cards = Array.from(
+        document.querySelectorAll(".home-poster-card, .home-continue-card, .home-hero-card")
+      );
+      const identity =
+        el.getAttribute("data-item-id") ||
+        el.getAttribute("data-focus-key") ||
+        el.getAttribute("data-see-all-id") ||
+        "idx:" + cards.indexOf(el) + ":" + el.className;
+      return identity + "@" + (row?.getAttribute("data-row-key") || "");
+    })()`
+  );
 }
 
 async function focusPosition(page) {
-  return page.evaluate(() => {
-    const el = document.querySelector(".focusable.focused");
-    if (!el) return null;
-    const row = el.closest("[data-nav-row]");
-    const col = el.closest("[data-nav-col]");
-    const cards = Array.from(
-      document.querySelectorAll(".home-poster-card, .home-continue-card, .home-hero-card")
-    );
-    const identity =
-      el.getAttribute("data-item-id") ||
-      el.getAttribute("data-focus-key") ||
-      el.getAttribute("data-see-all-id") ||
-      "idx:" + cards.indexOf(el) + ":" + el.className;
-    return `${identity}@r${row?.getAttribute("data-nav-row") || ""}c${col?.getAttribute("data-nav-col") || ""}`;
-  });
+  return page.evaluate(
+    `(() => {
+      const el = ${FOCUSED_EXPR};
+      if (!el) return null;
+      const row = el.closest("[data-nav-row]");
+      const col = el.closest("[data-nav-col]");
+      const cards = Array.from(
+        document.querySelectorAll(".home-poster-card, .home-continue-card, .home-hero-card")
+      );
+      const identity =
+        el.getAttribute("data-item-id") ||
+        el.getAttribute("data-focus-key") ||
+        el.getAttribute("data-see-all-id") ||
+        "idx:" + cards.indexOf(el) + ":" + el.className;
+      return (
+        identity +
+        "@r" +
+        (row?.getAttribute("data-nav-row") || "") +
+        "c" +
+        (col?.getAttribute("data-nav-col") || "")
+      );
+    })()`
+  );
 }
 
 async function countOf(page, selector) {
@@ -329,7 +362,9 @@ const STEPS = {
     }
     await enterContentFromSidebar(page);
     await sleep(2000);
-    await focusTo(page, ".library-grid-card");
+    if (!(await focusTo(page, ".library-grid-card"))) {
+      for (let k = 0; k < 12; k++) await press(page, "ArrowDown");
+    }
     return runReps(page, cdp, "grid_library", reps, async (i, warmup) => {
       await focusTo(page, ".library-grid-card");
       const segments = {};
