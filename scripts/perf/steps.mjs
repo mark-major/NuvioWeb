@@ -70,7 +70,15 @@ async function focusedKey(page) {
     const el = document.querySelector(".focusable.focused");
     if (!el) return null;
     const row = el.closest("[data-row-key]");
-    return `${el.getAttribute("data-focus-key") || el.tagName}@${row?.getAttribute("data-row-key") || ""}`;
+    const cards = Array.from(
+      document.querySelectorAll(".home-poster-card, .home-continue-card, .home-hero-card")
+    );
+    const identity =
+      el.getAttribute("data-item-id") ||
+      el.getAttribute("data-focus-key") ||
+      el.getAttribute("data-see-all-id") ||
+      "idx:" + cards.indexOf(el) + ":" + el.className;
+    return `${identity}@${row?.getAttribute("data-row-key") || ""}`;
   });
 }
 
