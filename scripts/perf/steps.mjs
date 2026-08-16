@@ -94,6 +94,15 @@ export async function focusTo(page, selector, { maxPresses = 60, escape = true }
 }
 
 export async function focusSidebarItem(page, action) {
+  const atPoster = await page.evaluate(() => {
+    const el = document.querySelector(".focusable.focused");
+    return Boolean(
+      el?.matches(".home-poster-card, .home-continue-card") && Number(el.dataset?.navRow || 0) >= 1
+    );
+  });
+  if (!atPoster) {
+    await focusTo(page, ".home-poster-card, .home-continue-card");
+  }
   await press(page, "ArrowLeft");
   for (let i = 0; i < 12; i++) {
     const state = await page.evaluate((act) => {
@@ -113,7 +122,7 @@ export async function focusSidebarItem(page, action) {
     } else if (state.idx > state.targetIdx) {
       await press(page, "ArrowUp");
     } else if (!state.match) {
-      await press(page, "ArrowLeft");
+      await press(page, "ArrowUp");
     }
   }
   return false;
