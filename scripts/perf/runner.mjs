@@ -56,11 +56,14 @@ export async function runProtocol(flags = {}) {
     gitSha = execSync("git rev-parse --short HEAD", { cwd: ROOT_DIR }).toString().trim();
   } catch (_) {}
 
-  const authExists = await readFile(AUTH_STATE_PATH, "utf8").then(
-    () => true,
-    () => false
+  let state = null;
+  try {
+    state = JSON.parse(await readFile(AUTH_STATE_PATH, "utf8"));
+  } catch (_) {}
+  const savedToken = state?.origins?.[0]?.localStorage?.find(
+    (entry) => entry.name === "access_token" && entry.value
   );
-  if (!authExists) {
+  if (!state || !savedToken) {
     throw new Error(`No saved login. Run: npm run perf -- login`);
   }
 
