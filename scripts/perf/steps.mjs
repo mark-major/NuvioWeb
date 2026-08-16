@@ -69,6 +69,32 @@ export async function focusTo(page, selector, { maxPresses = 60 } = {}) {
   return false;
 }
 
+export async function focusSidebarItem(page, action) {
+  await press(page, "ArrowLeft");
+  for (let i = 0; i < 12; i++) {
+    const state = await page.evaluate((act) => {
+      const focused = document.querySelector(".focusable.focused");
+      const inSidebar = Boolean(focused?.closest(".home-sidebar, .modern-sidebar-panel"));
+      const match = Boolean(inSidebar && focused?.dataset?.action === act);
+      const idx = Number(focused?.dataset?.navIndex || 0);
+      const target = document.querySelector(
+        `.home-sidebar .focusable[data-action="${act}"], .modern-sidebar-panel .focusable[data-action="${act}"]`
+      );
+      const targetIdx = Number(target?.dataset?.navIndex || 0);
+      return { match, idx, targetIdx };
+    }, action);
+    if (state.match) return true;
+    if (state.idx < state.targetIdx) {
+      await press(page, "ArrowDown");
+    } else if (state.idx > state.targetIdx) {
+      await press(page, "ArrowUp");
+    } else if (!state.match) {
+      await press(page, "ArrowLeft");
+    }
+  }
+  return false;
+}
+
 async function focusedKey(page) {
   return page.evaluate(() => {
     const el = document.querySelector(".focusable.focused");
@@ -236,8 +262,7 @@ const STEPS = {
 
   async grid_library(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
-    await press(page, "ArrowLeft");
-    if (!(await focusTo(page, '[data-action="gotoLibrary"]'))) {
+    if (!(await focusSidebarItem(page, "gotoLibrary"))) {
       return { id: "grid_library", status: "skipped", reps: [], error: "sidebar unreachable" };
     }
     await press(page, "Enter");
@@ -317,8 +342,7 @@ const STEPS = {
         cdp,
         "forward",
         async () => {
-          await press(page, "ArrowLeft");
-          if (!(await focusTo(page, '[data-action="gotoSettings"]'))) {
+          if (!(await focusSidebarItem(page, "gotoSettings"))) {
             throw new Error("settings sidebar item unreachable");
           }
           await press(page, "Enter");
@@ -347,8 +371,7 @@ const STEPS = {
 
   async settings_theme_toggle(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
-    await press(page, "ArrowLeft");
-    if (!(await focusTo(page, '[data-action="gotoSettings"]'))) {
+    if (!(await focusSidebarItem(page, "gotoSettings"))) {
       return {
         id: "settings_theme_toggle",
         status: "skipped",
