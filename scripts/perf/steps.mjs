@@ -66,7 +66,16 @@ export async function focusTo(page, selector, { maxPresses = 60 } = {}) {
   if (await isFocused(page, selector)) return true;
   for (let i = 0; i < maxPresses; i++) {
     await press(page, i % 2 === 0 ? "ArrowRight" : "ArrowDown");
-    if (await isFocused(page, selector)) return true;
+    const anchored = await page.evaluate((sel) => {
+      const focused = document.querySelector(".focusable.focused");
+      if (!focused || !focused.matches(sel)) return false;
+      const row = focused.closest("[data-nav-row], .home-track, .home-row");
+      if (!row) return false;
+      const cards = Array.from(row.querySelectorAll(".focusable")).filter((n) => n.matches(sel));
+      const idx = cards.indexOf(focused);
+      return idx >= 1 && idx <= 5;
+    }, selector);
+    if (anchored) return true;
   }
   return false;
 }
@@ -85,6 +94,24 @@ async function focusedKey(page) {
       el.getAttribute("data-see-all-id") ||
       "idx:" + cards.indexOf(el) + ":" + el.className;
     return `${identity}@${row?.getAttribute("data-row-key") || ""}`;
+  });
+}
+
+async function focusPosition(page) {
+  return page.evaluate(() => {
+    const el = document.querySelector(".focusable.focused");
+    if (!el) return null;
+    const row = el.closest("[data-nav-row]");
+    const col = el.closest("[data-nav-col]");
+    const cards = Array.from(
+      document.querySelectorAll(".home-poster-card, .home-continue-card, .home-hero-card")
+    );
+    const identity =
+      el.getAttribute("data-item-id") ||
+      el.getAttribute("data-focus-key") ||
+      el.getAttribute("data-see-all-id") ||
+      "idx:" + cards.indexOf(el) + ":" + el.className;
+    return `${identity}@r${row?.getAttribute("data-nav-row") || ""}c${col?.getAttribute("data-nav-col") || ""}`;
   });
 }
 
@@ -146,9 +173,9 @@ const STEPS = {
         cdp,
         "main",
         async () => {
-          const before = await focusedKey(page);
+          const before = await focusPosition(page);
           for (let k = 0; k < 10; k++) await press(page, "ArrowRight");
-          const after = await focusedKey(page);
+          const after = await focusPosition(page);
           if (!warmup && before === after) throw new Error("focus did not move");
         },
         traceDir,
@@ -170,9 +197,9 @@ const STEPS = {
         cdp,
         "main",
         async () => {
-          const before = await focusedKey(page);
+          const before = await focusPosition(page);
           for (let k = 0; k < 5; k++) await press(page, "ArrowDown");
-          const after = await focusedKey(page);
+          const after = await focusPosition(page);
           if (!warmup && before === after) throw new Error("focus row did not change");
         },
         traceDir,
@@ -241,10 +268,10 @@ const STEPS = {
         cdp,
         "main",
         async () => {
-          const before = await focusedKey(page);
+          const before = await focusPosition(page);
           for (let k = 0; k < 10; k++) await press(page, "ArrowDown");
           for (let k = 0; k < 4; k++) await press(page, "ArrowRight");
-          const after = await focusedKey(page);
+          const after = await focusPosition(page);
           if (!warmup && before === after) throw new Error("library focus did not move");
         },
         traceDir,
