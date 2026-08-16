@@ -164,6 +164,48 @@ async function enterContentFromSidebar(page) {
   return false;
 }
 
+export async function focusSettingsSection(page, sectionId) {
+  const focusKey = `nav:${sectionId}`;
+  for (let i = 0; i < 12; i++) {
+    const state = await page.evaluate(
+      `(() => {
+        const focused = ${FOCUSED_EXPR};
+        const inRail = Boolean(
+          focused?.closest(".home-sidebar.root-sidebar, .settings-root-sidebar-slot")
+        );
+        const match = Boolean(
+          inRail && focused?.dataset?.focusKey === ${JSON.stringify(focusKey)}
+        );
+        const idx = Number(focused?.dataset?.navIndex || 0);
+        const target = document.querySelector(
+          ".home-sidebar.root-sidebar [data-focus-key=" + ${JSON.stringify(focusKey)} + "]"
+        );
+        const targetIdx = Number(target?.dataset?.navIndex || 0);
+        return { match, idx, targetIdx };
+      })()`
+    );
+    if (state.match) {
+      await press(page, "Enter");
+      await sleep(200);
+      return page
+        .waitForFunction(
+          `(() => document.querySelectorAll('[data-focus-key^="${sectionId}:"]').length > 0)()`,
+          { timeout: 20000 }
+        )
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (state.idx < state.targetIdx) {
+      await press(page, "ArrowDown");
+    } else if (state.idx > state.targetIdx) {
+      await press(page, "ArrowUp");
+    } else {
+      await press(page, "ArrowDown");
+    }
+  }
+  return false;
+}
+
 async function focusedKey(page) {
   return page.evaluate(
     `(() => {
@@ -321,6 +363,7 @@ const STEPS = {
     await page.waitForSelector(".seeall-grid", { timeout: 20000 });
     await sleep(2500);
     return runReps(page, cdp, "grid_seeall", reps, async (i, warmup) => {
+      for (let k = 0; k < 30; k++) await press(page, "ArrowUp");
       const segments = {};
       segments.main = await buildSegment(
         page,
@@ -462,10 +505,20 @@ const STEPS = {
           await press(page, "Escape");
           await page.waitForFunction(
             () => {
-              const shell = document.querySelector(".home-shell.home-screen-shell");
-              if (!shell) return false;
+              const settingsShell = document.querySelector(".home-shell.settings-shell");
+              const settingsVisible = Boolean(
+                settingsShell &&
+                (settingsShell.offsetParent !== null ||
+                  settingsShell === document.activeElement?.closest(".home-shell.settings-shell"))
+              );
+              const homeShell = document.querySelector("#home .home-shell.home-screen-shell");
               const active = document.activeElement;
-              return Boolean(active && shell.contains(active));
+              const activeInHome = Boolean(
+                active &&
+                homeShell &&
+                (homeShell.contains(active) || active.closest(".home-sidebar"))
+              );
+              return !settingsVisible && Boolean(homeShell && activeInHome);
             },
             { timeout: 20000 }
           );
@@ -493,8 +546,7 @@ const STEPS = {
     await press(page, "Enter");
     await page.waitForSelector(".settings-sidebar", { timeout: 20000 });
     await sleep(1500);
-    await enterContentFromSidebar(page);
-    if (!(await focusTo(page, '[data-focus-key^="appearance:theme:"]'))) {
+    if (!(await focusSettingsSection(page, "appearance"))) {
       return {
         id: "settings_theme_toggle",
         status: "skipped",
@@ -502,8 +554,9 @@ const STEPS = {
         error: "theme card unreachable"
       };
     }
+    await sleep(1200);
     return runReps(page, cdp, "settings_theme_toggle", reps, async (i, warmup) => {
-      await enterContentFromSidebar(page);
+      await focusTo(page, '[data-focus-key^="appearance:theme:"]');
       const segments = {};
       segments.main = await buildSegment(
         page,
