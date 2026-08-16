@@ -189,7 +189,7 @@ export async function focusSettingsSection(page, sectionId) {
       await sleep(200);
       return page
         .waitForFunction(
-          `(() => document.querySelectorAll('[data-focus-key^="${sectionId}:"]').length > 0)()`,
+          `(() => document.querySelectorAll('[data-focus-key^="${focusKey.slice(4)}:"]').length > 0)()`,
           { timeout: 20000 }
         )
         .then(() => true)
