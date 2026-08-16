@@ -97,15 +97,15 @@ Each step: fresh page load → app-ready wait (`body` populated, no
 (default 5, `--reps`). Focus is driven exclusively by keyboard (arrow keys,
 Enter, Escape), matching the TV reality.
 
-| id | area | script | success condition per rep |
-|---|---|---|---|
-| `home_dpad_row` | home d-pad | ArrowRight ×10 in first row | `.focusable.focused` element identity changed |
-| `home_dpad_rows` | home d-pad | ArrowDown ×5 across rows | focused element's row container changed |
-| `grid_seeall` | grid scroll/pagination | open See All from home, ArrowDown through `.seeall-grid` until `loadNextPage()` fires | focus moves; on page-load reps: `.seeall-card` count increased and `.seeall-loading` gone |
-| `grid_library` | grid scroll/pagination | `#library` route, arrows through grid | focus moves; appended-content reps: card count grows |
-| `transition_detail` | transitions | Enter on focused home card → detail, Escape → home | detail shell visible, then home shell visible |
-| `transition_settings` | transitions | sidebar → settings, Escape → home | settings container visible, then home shell visible |
-| `settings_theme_toggle` | settings | in settings, focus theme/appearance toggle, Enter | root theme class/attribute changed |
+| id                      | area                   | script                                                                                | success condition per rep                                                                 |
+| ----------------------- | ---------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `home_dpad_row`         | home d-pad             | ArrowRight ×10 in first row                                                           | `.focusable.focused` element identity changed                                             |
+| `home_dpad_rows`        | home d-pad             | ArrowDown ×5 across rows                                                              | focused element's row container changed                                                   |
+| `grid_seeall`           | grid scroll/pagination | open See All from home, ArrowDown through `.seeall-grid` until `loadNextPage()` fires | focus moves; on page-load reps: `.seeall-card` count increased and `.seeall-loading` gone |
+| `grid_library`          | grid scroll/pagination | `#library` route, arrows through grid                                                 | focus moves; appended-content reps: card count grows                                      |
+| `transition_detail`     | transitions            | Enter on focused home card → detail, Escape → home                                    | detail shell visible, then home shell visible                                             |
+| `transition_settings`   | transitions            | sidebar → settings, Escape → home                                                     | settings container visible, then home shell visible                                       |
+| `settings_theme_toggle` | settings               | in settings, focus theme/appearance toggle, Enter                                     | root theme class/attribute changed                                                        |
 
 Step selection: `--steps id1,id2` subset; `--steps smoke` = 1 rep of
 `home_dpad_row` (used for the harness's own smoke test).
@@ -135,8 +135,8 @@ Per rep, three layers:
    - layout (Layout; events >50 ms flagged with initiating stack when present)
    - paint/composite (Paint, PrePaint, Layerize, CompositeLayers)
    - parse (ParseHTML, ParseAuthorStyleSheet)
-   CPU-profile samples are joined to script frames → top functions by
-   self time (name, URL, line).
+     CPU-profile samples are joined to script frames → top functions by
+     self time (name, URL, line).
 3. **Context counters.** In-page `PerformanceObserver` for `longtask` within
    the rep window; forced-sync-layout heuristic is not attempted.
 
