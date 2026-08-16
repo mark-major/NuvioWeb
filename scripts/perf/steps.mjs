@@ -34,10 +34,16 @@ export async function waitForAppReady(page, timeoutMs = 30000) {
       document.body &&
       document.body.children.length > 0 &&
       !document.querySelector(".boot-guard-overlay") &&
-      Boolean(document.querySelector(".focusable")),
+      Boolean(
+        document.querySelector(".home-poster-card, .home-continue-card") ||
+        document.querySelector(".library-empty-state") ||
+        document.querySelector(".seeall-grid") ||
+        document.querySelector(".settings-sidebar") ||
+        document.querySelector(".series-detail-shell, .movie-detail-shell")
+      ),
     { timeout: timeoutMs }
   );
-  await sleep(1500);
+  await sleep(2500);
 }
 
 async function press(page, key) {
