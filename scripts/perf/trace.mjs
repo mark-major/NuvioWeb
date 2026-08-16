@@ -27,26 +27,30 @@ export function decodeTraceBuffer(buf) {
 export async function collectTrace(cdp) {
   const chunks = [];
   const done = new Promise((resolve, reject) => {
-    cdp.on("Tracing.tracingComplete", async (event) => {
+    const handler = async (event) => {
+      cdp.off("Tracing.tracingComplete", handler);
       try {
         const handle = event.stream;
-        for (;;) {
-          const result = await cdp.send("IO.read", { handle });
-          if (result.data) {
-            chunks.push(
-              result.base64Encoded === false
-                ? Buffer.from(result.data, "utf8")
-                : Buffer.from(result.data, "base64")
-            );
+        if (handle) {
+          for (;;) {
+            const result = await cdp.send("IO.read", { handle });
+            if (result.data) {
+              chunks.push(
+                result.base64Encoded === false
+                  ? Buffer.from(result.data, "utf8")
+                  : Buffer.from(result.data, "base64")
+              );
+            }
+            if (result.eof) break;
           }
-          if (result.eof) break;
+          await cdp.send("IO.close", { handle });
         }
-        await cdp.send("IO.close", { handle });
         resolve();
       } catch (error) {
         reject(error);
       }
-    });
+    };
+    cdp.on("Tracing.tracingComplete", handler);
     cdp.send("Tracing.end").catch(reject);
   });
   await done;
