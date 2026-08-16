@@ -46,12 +46,29 @@ export async function waitForAppReady(page, timeoutMs = 30000) {
   await sleep(2500);
 }
 
+export async function dismissOverlays(page, maxPresses = 6) {
+  for (let i = 0; i < maxPresses; i++) {
+    const state = await page.evaluate(() => {
+      const focused = document.querySelector(".focusable.focused");
+      const inSidebar = Boolean(focused?.closest(".home-sidebar, .modern-sidebar-panel"));
+      const expanded = Boolean(
+        document.querySelector(".home-sidebar.expanded, .modern-sidebar-shell.expanded")
+      );
+      return inSidebar || expanded;
+    });
+    if (!state) return true;
+    await press(page, "Escape");
+    await sleep(400);
+  }
+  return false;
+}
+
 async function press(page, key) {
   await page.keyboard.press(key);
   await sleep(KEY_GAP_MS);
 }
 
-export async function focusTo(page, selector, { maxPresses = 60 } = {}) {
+export async function focusTo(page, selector, { maxPresses = 60, escape = true } = {}) {
   for (let i = 0; i < maxPresses; i++) {
     const status = await page.evaluate((sel) => {
       const focused = document.querySelector(".focusable.focused");
@@ -64,7 +81,14 @@ export async function focusTo(page, selector, { maxPresses = 60 } = {}) {
       return idx >= 1 && idx <= 5 ? "ok" : "late";
     }, selector);
     if (status === "ok") return true;
-    await press(page, ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowDown"][i % 4]);
+    await press(
+      page,
+      escape
+        ? ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowDown"][i % 4]
+        : i % 2 === 0
+          ? "ArrowRight"
+          : "ArrowDown"
+    );
   }
   return false;
 }
@@ -179,6 +203,7 @@ async function runReps(page, cdp, stepId, repCount, repFn) {
 const STEPS = {
   async home_dpad_row(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
+    await dismissOverlays(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_row", reps, async (i, warmup) => {
       await focusTo(page, ".home-poster-card, .home-continue-card");
@@ -203,6 +228,7 @@ const STEPS = {
 
   async home_dpad_rows(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
+    await dismissOverlays(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_rows", reps, async (i, warmup) => {
       await focusTo(page, ".home-poster-card, .home-continue-card");
@@ -227,7 +253,13 @@ const STEPS = {
 
   async grid_seeall(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
-    if (!(await focusTo(page, ".home-seeall-card"))) {
+    await dismissOverlays(page);
+    let parked = await focusTo(page, ".home-seeall-card", { escape: false });
+    if (!parked) {
+      await dismissOverlays(page);
+      parked = await focusTo(page, ".home-seeall-card", { escape: false });
+    }
+    if (!parked) {
       return { id: "grid_seeall", status: "skipped", reps: [], error: "no see-all card" };
     }
     await press(page, "Enter");
@@ -262,6 +294,7 @@ const STEPS = {
 
   async grid_library(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
+    await dismissOverlays(page);
     if (!(await focusSidebarItem(page, "gotoLibrary"))) {
       return { id: "grid_library", status: "skipped", reps: [], error: "sidebar unreachable" };
     }
@@ -298,6 +331,7 @@ const STEPS = {
 
   async transition_detail(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
+    await dismissOverlays(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "transition_detail", reps, async (i) => {
       await focusTo(page, ".home-poster-card, .home-continue-card");
@@ -335,6 +369,7 @@ const STEPS = {
 
   async transition_settings(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
+    await dismissOverlays(page);
     return runReps(page, cdp, "transition_settings", reps, async (i) => {
       const segments = {};
       segments.forward = await buildSegment(
@@ -371,6 +406,7 @@ const STEPS = {
 
   async settings_theme_toggle(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
+    await dismissOverlays(page);
     if (!(await focusSidebarItem(page, "gotoSettings"))) {
       return {
         id: "settings_theme_toggle",
