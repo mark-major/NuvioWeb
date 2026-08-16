@@ -166,6 +166,7 @@ async function enterContentFromSidebar(page) {
 
 export async function focusSettingsSection(page, sectionId) {
   const focusKey = `nav:${sectionId}`;
+  const railSelector = JSON.stringify(`.home-sidebar.root-sidebar [data-focus-key="${focusKey}"]`);
   for (let i = 0; i < 12; i++) {
     const state = await page.evaluate(
       `(() => {
@@ -177,9 +178,7 @@ export async function focusSettingsSection(page, sectionId) {
           inRail && focused?.dataset?.focusKey === ${JSON.stringify(focusKey)}
         );
         const idx = Number(focused?.dataset?.navIndex || 0);
-        const target = document.querySelector(
-          ".home-sidebar.root-sidebar [data-focus-key=" + JSON.stringify(focusKey) + "]"
-        );
+        const target = document.querySelector(${railSelector});
         const targetIdx = Number(target?.dataset?.navIndex || 0);
         return { match, idx, targetIdx };
       })()`
