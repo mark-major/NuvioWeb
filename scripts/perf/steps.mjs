@@ -134,6 +134,7 @@ const STEPS = {
     await waitForAppReady(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_row", reps, async (i, warmup) => {
+      await focusTo(page, ".home-poster-card, .home-continue-card");
       const segments = {};
       segments.main = await buildSegment(
         page,
@@ -158,6 +159,7 @@ const STEPS = {
     await waitForAppReady(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_rows", reps, async (i, warmup) => {
+      await focusTo(page, ".home-poster-card, .home-continue-card");
       const segments = {};
       segments.main = await buildSegment(
         page,
@@ -230,6 +232,7 @@ const STEPS = {
     await sleep(2000);
     await focusTo(page, ".library-grid-card");
     return runReps(page, cdp, "grid_library", reps, async (i, warmup) => {
+      await focusTo(page, ".library-grid-card");
       const segments = {};
       segments.main = await buildSegment(
         page,
@@ -255,6 +258,7 @@ const STEPS = {
     await waitForAppReady(page);
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "transition_detail", reps, async (i) => {
+      await focusTo(page, ".home-poster-card, .home-continue-card");
       const segments = {};
       segments.forward = await buildSegment(
         page,
