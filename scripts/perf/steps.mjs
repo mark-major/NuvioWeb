@@ -178,7 +178,7 @@ export async function focusSettingsSection(page, sectionId) {
         );
         const idx = Number(focused?.dataset?.navIndex || 0);
         const target = document.querySelector(
-          ".home-sidebar.root-sidebar [data-focus-key=\"" + focusKey + "\"]"
+          ".home-sidebar.root-sidebar [data-focus-key=" + JSON.stringify(focusKey) + "]"
         );
         const targetIdx = Number(target?.dataset?.navIndex || 0);
         return { match, idx, targetIdx };
