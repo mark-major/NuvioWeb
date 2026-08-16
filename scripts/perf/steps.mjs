@@ -51,31 +51,20 @@ async function press(page, key) {
   await sleep(KEY_GAP_MS);
 }
 
-async function isFocused(page, selector) {
-  return page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (!el) return false;
-    if (el.classList.contains("focused")) return true;
-    return Array.from(document.querySelectorAll(sel)).some((node) =>
-      node.classList.contains("focused")
-    );
-  }, selector);
-}
-
 export async function focusTo(page, selector, { maxPresses = 60 } = {}) {
-  if (await isFocused(page, selector)) return true;
   for (let i = 0; i < maxPresses; i++) {
-    await press(page, i % 2 === 0 ? "ArrowRight" : "ArrowDown");
-    const anchored = await page.evaluate((sel) => {
+    const status = await page.evaluate((sel) => {
       const focused = document.querySelector(".focusable.focused");
-      if (!focused || !focused.matches(sel)) return false;
+      if (!focused || !focused.matches(sel)) return "no";
       const row = focused.closest("[data-nav-row], .home-track, .home-row");
-      if (!row) return false;
+      if (!row) return "ok";
       const cards = Array.from(row.querySelectorAll(".focusable")).filter((n) => n.matches(sel));
+      if (cards.length <= 1) return "ok";
       const idx = cards.indexOf(focused);
-      return idx >= 1 && idx <= 5;
+      return idx >= 1 && idx <= 5 ? "ok" : "late";
     }, selector);
-    if (anchored) return true;
+    if (status === "ok") return true;
+    await press(page, ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowDown"][i % 4]);
   }
   return false;
 }
