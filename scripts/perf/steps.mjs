@@ -48,7 +48,11 @@ async function press(page, key) {
 async function isFocused(page, selector) {
   return page.evaluate((sel) => {
     const el = document.querySelector(sel);
-    return Boolean(el && el.classList.contains("focused"));
+    if (!el) return false;
+    if (el.classList.contains("focused")) return true;
+    return Array.from(document.querySelectorAll(sel)).some((node) =>
+      node.classList.contains("focused")
+    );
   }, selector);
 }
 
@@ -120,7 +124,7 @@ const STEPS = {
   async home_dpad_row(page, cdp, { reps, traceDir }) {
     await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
-    await focusTo(page, ".home-poster-card, .home-continue-card, .home-hero-card");
+    await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_row", reps, async (i, warmup) => {
       const segments = {};
       segments.main = await buildSegment(
@@ -144,7 +148,7 @@ const STEPS = {
   async home_dpad_rows(page, cdp, { reps, traceDir }) {
     await page.goto(appUrl(page), { waitUntil: "domcontentloaded" });
     await waitForAppReady(page);
-    await focusTo(page, ".home-poster-card, .home-continue-card, .home-hero-card");
+    await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_rows", reps, async (i, warmup) => {
       const segments = {};
       segments.main = await buildSegment(
