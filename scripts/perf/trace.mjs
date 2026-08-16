@@ -1,4 +1,4 @@
-import { gzipSync } from "node:zlib";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -15,6 +15,13 @@ export async function startTrace(cdp) {
     categories: TRACE_CATEGORIES.join(","),
     options: "sampling-frequency=10000"
   });
+}
+
+export function decodeTraceBuffer(buf) {
+  if (buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
+    return gunzipSync(buf);
+  }
+  return buf;
 }
 
 export async function collectTrace(cdp) {
@@ -37,7 +44,7 @@ export async function collectTrace(cdp) {
     cdp.send("Tracing.end").catch(reject);
   });
   await done;
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  return JSON.parse(decodeTraceBuffer(Buffer.concat(chunks)).toString("utf8"));
 }
 
 export async function saveTraceGz(runDir, stepId, repIndex, trace) {
