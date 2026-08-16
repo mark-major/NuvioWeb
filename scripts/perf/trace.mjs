@@ -32,7 +32,13 @@ export async function collectTrace(cdp) {
         const handle = event.stream;
         for (;;) {
           const result = await cdp.send("IO.read", { handle });
-          if (result.data) chunks.push(Buffer.from(result.data, "base64"));
+          if (result.data) {
+            chunks.push(
+              result.base64Encoded === false
+                ? Buffer.from(result.data, "utf8")
+                : Buffer.from(result.data, "base64")
+            );
+          }
           if (result.eof) break;
         }
         await cdp.send("IO.close", { handle });
