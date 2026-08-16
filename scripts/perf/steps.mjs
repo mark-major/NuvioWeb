@@ -400,9 +400,10 @@ const STEPS = {
         "forward",
         async () => {
           await press(page, "Enter");
-          await page.waitForSelector(".series-detail-shell, .movie-detail-shell", {
-            timeout: 20000
-          });
+          await page.waitForFunction(
+            () => Boolean(document.querySelector(".series-detail-shell, .movie-detail-shell")),
+            { timeout: 20000 }
+          );
         },
         traceDir,
         "transition_detail",
@@ -414,7 +415,15 @@ const STEPS = {
         "back",
         async () => {
           await press(page, "Escape");
-          await page.waitForSelector(".home-shell.home-screen-shell", { timeout: 20000 });
+          await page.waitForFunction(
+            () => {
+              const shell = document.querySelector(".home-shell.home-screen-shell");
+              if (!shell) return false;
+              const active = document.activeElement;
+              return Boolean(active && shell.contains(active));
+            },
+            { timeout: 20000 }
+          );
         },
         traceDir,
         "transition_detail",
@@ -451,7 +460,15 @@ const STEPS = {
         "back",
         async () => {
           await press(page, "Escape");
-          await page.waitForSelector(".home-shell.home-screen-shell", { timeout: 20000 });
+          await page.waitForFunction(
+            () => {
+              const shell = document.querySelector(".home-shell.home-screen-shell");
+              if (!shell) return false;
+              const active = document.activeElement;
+              return Boolean(active && shell.contains(active));
+            },
+            { timeout: 20000 }
+          );
         },
         traceDir,
         "transition_settings",
