@@ -366,11 +366,11 @@ function appUrl(page) {
   return page.url().split("#")[0];
 }
 
-export async function runStep(page, cdp, stepId, options = {}) {
+export async function runStep(page, cdp, stepId, { reps = 5, traceDir = null } = {}) {
   const fn = STEPS[stepId];
   if (!fn) throw new Error(`Unknown step: ${stepId}`);
   try {
-    return await fn(page, cdp, options);
+    return await fn(page, cdp, { reps, traceDir });
   } catch (error) {
     return { id: stepId, status: "failed", reps: [], error: String(error?.message || error) };
   }
