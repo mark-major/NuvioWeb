@@ -2981,10 +2981,9 @@ export const HomeScreen = {
       return false;
     }
 
+    const trackByRowKey = this.getNavigationTrackByRowKey();
     Object.entries(focusState.trackStates || {}).forEach(([rowKey, scrollLeft]) => {
-      const track = this.getNavigationTrackNodes().find(
-        (node) => String(node.dataset.trackRowKey || "") === String(rowKey || "")
-      );
+      const track = trackByRowKey.get(String(rowKey || ""));
       if (track) {
         track.scrollLeft = Number(scrollLeft || 0);
       }
@@ -2996,10 +2995,9 @@ export const HomeScreen = {
       return false;
     }
 
-    const maxScrollTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
-    viewport.scrollTop = Math.max(0, Math.min(maxScrollTop, Number(focusState.mainScrollTop || 0)));
+    viewport.scrollTop = Number(focusState.mainScrollTop || 0);
     this.setFocusedNode(target, { suppressDelegatedFocus: true });
-    viewport.scrollTop = Math.max(0, Math.min(maxScrollTop, Number(focusState.mainScrollTop || 0)));
+    viewport.scrollTop = Number(focusState.mainScrollTop || 0);
     this.lastMainFocus = target;
     this.rememberMainRowFocus(target);
     this.syncFocusedCollectionCardState();
@@ -3104,17 +3102,15 @@ export const HomeScreen = {
       return false;
     }
 
+    const trackByRowKey = this.getNavigationTrackByRowKey();
     Object.entries(focusState.trackStates || {}).forEach(([rowKey, scrollLeft]) => {
-      const track = this.getNavigationTrackNodes().find(
-        (node) => String(node.dataset.trackRowKey || "") === String(rowKey || "")
-      );
+      const track = trackByRowKey.get(String(rowKey || ""));
       if (track) {
         track.scrollLeft = Number(scrollLeft || 0);
       }
     });
 
-    const maxScrollTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
-    viewport.scrollTop = Math.max(0, Math.min(maxScrollTop, Number(focusState.mainScrollTop || 0)));
+    viewport.scrollTop = Number(focusState.mainScrollTop || 0);
 
     const targetNodes = this.getNavigationRowNodes(focusState.rowKey);
     if (this.isRestoringFocusFromBack && focusState.rowKey && !targetNodes.length) {
@@ -3152,17 +3148,15 @@ export const HomeScreen = {
       return false;
     }
 
+    const trackByRowKey = this.getNavigationTrackByRowKey();
     Object.entries(focusState.trackStates || {}).forEach(([rowKey, scrollLeft]) => {
-      const track = this.getNavigationTrackNodes().find(
-        (node) => String(node.dataset.trackRowKey || "") === String(rowKey || "")
-      );
+      const track = trackByRowKey.get(String(rowKey || ""));
       if (track) {
         track.scrollLeft = Number(scrollLeft || 0);
       }
     });
 
-    const maxScrollTop = Math.max(0, main.scrollHeight - main.clientHeight);
-    main.scrollTop = Math.max(0, Math.min(maxScrollTop, Number(focusState.mainScrollTop || 0)));
+    main.scrollTop = Number(focusState.mainScrollTop || 0);
 
     let target = null;
     if (focusState.focusKind === "hero") {
@@ -4099,6 +4093,17 @@ export const HomeScreen = {
       return this.navModel.tracks.filter((node) => node?.isConnected);
     }
     return Array.from(this.container?.querySelectorAll("[data-track-row-key]") || []);
+  },
+
+  getNavigationTrackByRowKey() {
+    const trackByRowKey = new Map();
+    for (const node of this.getNavigationTrackNodes()) {
+      const key = String(node.dataset.trackRowKey || "");
+      if (key && !trackByRowKey.has(key)) {
+        trackByRowKey.set(key, node);
+      }
+    }
+    return trackByRowKey;
   },
 
   getNavigationRowSection(rowKey = "") {

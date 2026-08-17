@@ -20,6 +20,7 @@ export function renderConsoleTable(run) {
       pad("style", 8) +
       pad("layout", 9) +
       pad("paint", 8) +
+      pad("net", 14) +
       "longtasks"
   );
   for (const step of run.steps || []) {
@@ -38,6 +39,7 @@ export function renderConsoleTable(run) {
           pad(Math.round(seg.phases?.style || 0), 8) +
           pad(Math.round(seg.phases?.layout || 0), 9) +
           pad(Math.round(seg.phases?.paint || 0), 8) +
+          pad(`${seg.network?.count || 0}r/${Math.round(seg.network?.maxMs || 0)}ms`, 14) +
           `${seg.longtaskCount || 0} (max ${Math.round(seg.longtaskMax || 0)}ms)`
       );
     }
@@ -87,13 +89,22 @@ for (const step of run.steps || []) {
   for (const [name, seg] of Object.entries(step.segments || {})) {
     const total = Object.values(seg.phases || {}).reduce((a, b) => a + b, 0) || 1;
     inner += '<div class="seg"><h3>' + name + "</h3>";
-    for (const m of [["n", seg.n], ["p50 ms", Math.round(seg.p50)], ["p95 ms", Math.round(seg.p95)], ["longtasks", (seg.longtaskCount || 0) + " / " + Math.round(seg.longtaskMax || 0) + "ms"]]) {
+    for (const m of [["n", seg.n], ["p50 ms", Math.round(seg.p50)], ["p95 ms", Math.round(seg.p95)], ["net", (seg.network?.count || 0) + "r / " + Math.round(seg.network?.maxMs || 0) + "ms"], ["longtasks", (seg.longtaskCount || 0) + " / " + Math.round(seg.longtaskMax || 0) + "ms"]]) {
       inner += '<div class="metric"><span>' + m[0] + "</span><b>" + m[1] + "</b></div>";
     }
     inner += "</div>";
     inner += '<div class="bar">' + Object.entries(seg.phases || {}).map(([k, v]) => '<span class="' + k + '" style="width:' + (100 * v / total) + '%" title="' + k + " " + Math.round(v) + 'ms"></span>').join("") + "</div>";
     inner += "<details><summary>top JS functions</summary><table>" + (seg.topFunctions || []).map((f) => "<tr><td>" + Math.round(f.selfMs) + "ms</td><td>" + f.name + "</td><td>" + f.url + ":" + f.line + "</td></tr>").join("") + "</table></details>";
     inner += "<details><summary>top trace events</summary><table>" + (seg.topEvents || []).map((e) => "<tr><td>" + Math.round(e.durMs) + "ms</td><td>" + e.name + "</td><td>" + e.phase + "</td></tr>").join("") + "</table></details>";
+    inner +=
+      "<details><summary>network (" + (seg.network?.count || 0) + " req)</summary><table>" +
+      (seg.network
+        ? "<tr><td>total</td><td>" + Math.round(seg.network.totalMs || 0) + "ms</td></tr>" +
+          "<tr><td>p50</td><td>" + Math.round(seg.network.p50Ms || 0) + "ms</td></tr>" +
+          "<tr><td>slowest</td><td>" + Math.round(seg.network.maxMs || 0) + "ms — " + (seg.network.slowest || "") + "</td></tr>" +
+          "<tr><td>bytes</td><td>" + Math.round(seg.network.bytes || 0) + "</td></tr>"
+        : "") +
+      "</table></details>";
   }
   card.innerHTML = inner;
   root.appendChild(card);

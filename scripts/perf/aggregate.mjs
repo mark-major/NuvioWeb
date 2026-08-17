@@ -39,6 +39,7 @@ export function aggregateStep(step) {
       phases: seg.phases || {},
       topFunctions: seg.topFunctions || [],
       topEvents: seg.topEvents || [],
+      network: seg.network || null,
       longtaskCount: longtasks.length,
       longtaskMax: longtasks.length ? Math.max(...longtasks.map((l) => l.duration)) : 0
     };

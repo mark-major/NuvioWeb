@@ -1,4 +1,4 @@
-import { measureSegment, summarizeEventTimings } from "./timing.mjs";
+import { measureSegment, summarizeEventTimings, summarizeNetwork } from "./timing.mjs";
 import { startTrace, collectTrace, saveTraceGz } from "./trace.mjs";
 import { parseTrace } from "./traceParser.mjs";
 
@@ -333,6 +333,7 @@ async function buildSegment(page, cdp, name, fn, traceDir, stepId, repIndex) {
     topFunctions: parsed?.topFunctions || [],
     topEvents: parsed?.topEvents || [],
     longtasks: payload.longtasks,
+    network: summarizeNetwork(payload.resources),
     eventTimingSupported: payload.eventTimingSupported
   };
 }
