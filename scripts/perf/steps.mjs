@@ -76,6 +76,23 @@ async function press(page, key) {
   await sleep(KEY_GAP_MS);
 }
 
+async function pressBack(page) {
+  await page.evaluate(() => {
+    const el = document.activeElement || document.body;
+    el.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Back",
+        keyCode: 10009,
+        which: 10009,
+        bubbles: true,
+        cancelable: true,
+        composed: true
+      })
+    );
+  });
+  await sleep(KEY_GAP_MS);
+}
+
 export async function focusTo(page, selector, { maxPresses = 60, escape = true } = {}) {
   for (let i = 0; i < maxPresses; i++) {
     const status = await page.evaluate(
@@ -96,7 +113,7 @@ export async function focusTo(page, selector, { maxPresses = 60, escape = true }
     await press(
       page,
       escape
-        ? ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowDown"][i % 4]
+        ? ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"][i % 4]
         : i % 2 === 0
           ? "ArrowRight"
           : "ArrowDown"
@@ -105,20 +122,35 @@ export async function focusTo(page, selector, { maxPresses = 60, escape = true }
   return false;
 }
 
-export async function focusSidebarItem(page, action) {
-  const atPoster = await page.evaluate(
-    `(() => {
-      const el = ${FOCUSED_EXPR};
-      return Boolean(
-        el?.matches(".home-poster-card, .home-continue-card") &&
-          Number(el.dataset?.navRow || 0) >= 1
-      );
-    })()`
-  );
-  if (!atPoster) {
-    await focusTo(page, ".home-poster-card, .home-continue-card");
+async function parkTop(page) {
+  let prev = await focusPosition(page);
+  for (let k = 0; k < 30; k++) {
+    await press(page, "ArrowUp");
+    const pos = await focusPosition(page);
+    if (pos === prev) return;
+    prev = pos;
   }
-  await press(page, "ArrowLeft");
+}
+
+export async function focusSidebarItem(page, action) {
+  const inSidebarAlready = await page.evaluate(
+    `(() => Boolean(${FOCUSED_EXPR}?.closest(".home-sidebar, .modern-sidebar-panel")))()`
+  );
+  if (!inSidebarAlready) {
+    const atPoster = await page.evaluate(
+      `(() => {
+        const el = ${FOCUSED_EXPR};
+        return Boolean(
+          el?.matches(".home-poster-card, .home-continue-card") &&
+            Number(el.dataset?.navRow || 0) >= 1
+        );
+      })()`
+    );
+    if (!atPoster) {
+      await focusTo(page, ".home-poster-card, .home-continue-card");
+    }
+    await press(page, "ArrowLeft");
+  }
   for (let i = 0; i < 12; i++) {
     const state = await page.evaluate(
       `(() => {
@@ -254,6 +286,27 @@ async function countOf(page, selector) {
   return page.evaluate((sel) => document.querySelectorAll(sel).length, selector);
 }
 
+async function walkSeeallToAppend(page) {
+  const before = await countOf(page, ".seeall-card");
+  let prev = await focusPosition(page);
+  let stall = 0;
+  for (let k = 0; k < 60 && stall < 3; k++) {
+    await press(page, "ArrowDown");
+    if ((await countOf(page, ".seeall-card")) > before) break;
+    const pos = await focusPosition(page);
+    if (pos === prev) stall++;
+    else stall = 0;
+    prev = pos;
+  }
+  await page
+    .waitForFunction((b) => document.querySelectorAll(".seeall-card").length > b, before, {
+      timeout: 15000
+    })
+    .catch(() => {});
+  const after = await countOf(page, ".seeall-card");
+  return { before, after };
+}
+
 async function buildSegment(page, cdp, name, fn, traceDir, stepId, repIndex) {
   let payload;
   let traceJson = null;
@@ -328,6 +381,7 @@ const STEPS = {
     await focusTo(page, ".home-poster-card, .home-continue-card");
     return runReps(page, cdp, "home_dpad_rows", reps, async (i, warmup) => {
       await focusTo(page, ".home-poster-card, .home-continue-card");
+      await parkTop(page);
       const segments = {};
       segments.main = await buildSegment(
         page,
@@ -361,6 +415,21 @@ const STEPS = {
     await press(page, "Enter");
     await page.waitForSelector(".seeall-grid", { timeout: 20000 });
     await sleep(2500);
+    const discovery = await walkSeeallToAppend(page);
+    if (discovery.after <= discovery.before) {
+      return {
+        id: "grid_seeall",
+        status: "skipped",
+        reps: [],
+        error: "catalog fully loaded, no pagination"
+      };
+    }
+    await pressBack(page);
+    await sleep(1500);
+    await focusTo(page, ".home-seeall-card", { escape: false });
+    await press(page, "Enter");
+    await page.waitForSelector(".seeall-grid", { timeout: 20000 });
+    await sleep(2500);
     return runReps(page, cdp, "grid_seeall", reps, async (i, warmup) => {
       for (let k = 0; k < 30; k++) await press(page, "ArrowUp");
       const segments = {};
@@ -369,17 +438,10 @@ const STEPS = {
         cdp,
         "main",
         async () => {
-          const before = await countOf(page, ".seeall-card");
-          for (let k = 0; k < 14; k++) await press(page, "ArrowDown");
-          await page
-            .waitForFunction(
-              (prev) => document.querySelectorAll(".seeall-card").length > prev,
-              before,
-              { timeout: 15000 }
-            )
-            .catch(() => {});
-          const after = await countOf(page, ".seeall-card");
-          if (!warmup && after <= before) throw new Error("pagination did not append cards");
+          const { before, after } = await walkSeeallToAppend(page);
+          if (!warmup && after <= before) {
+            throw new Error("pagination did not append cards");
+          }
         },
         traceDir,
         "grid_seeall",
@@ -409,6 +471,7 @@ const STEPS = {
     }
     return runReps(page, cdp, "grid_library", reps, async (i, warmup) => {
       await focusTo(page, ".library-grid-card");
+      await parkTop(page);
       const segments = {};
       segments.main = await buildSegment(
         page,
@@ -501,23 +564,20 @@ const STEPS = {
         cdp,
         "back",
         async () => {
-          await press(page, "Escape");
+          await pressBack(page);
+          if (!(await focusSidebarItem(page, "gotoHome"))) {
+            throw new Error("home sidebar item unreachable from settings");
+          }
+          await press(page, "Enter");
           await page.waitForFunction(
             () => {
-              const settingsShell = document.querySelector(".home-shell.settings-shell");
-              const settingsVisible = Boolean(
-                settingsShell &&
-                (settingsShell.offsetParent !== null ||
-                  settingsShell === document.activeElement?.closest(".home-shell.settings-shell"))
-              );
               const homeShell = document.querySelector("#home .home-shell.home-screen-shell");
               const active = document.activeElement;
-              const activeInHome = Boolean(
-                active &&
+              return Boolean(
                 homeShell &&
-                (homeShell.contains(active) || active.closest(".home-sidebar"))
+                getComputedStyle(homeShell).visibility !== "hidden" &&
+                (homeShell.contains(active) || active?.closest(".home-sidebar"))
               );
-              return !settingsVisible && Boolean(homeShell && activeInHome);
             },
             { timeout: 20000 }
           );
