@@ -138,6 +138,49 @@ Open:
 http://127.0.0.1:8080
 ```
 
+### Performance Testing
+
+A Playwright + Chrome DevTools Protocol harness measures UI-change latency
+(input to next paint) under a Tizen TV profile and attributes each interaction
+to script, style, layout, and paint work.
+
+```bash
+# 1. One-time interactive login (QR code or developer email); session persists.
+npm run build
+PORT=4317 npm run serve &      # harness server on a dedicated port
+npm run perf -- login --url http://127.0.0.1:4317
+
+# 2. Smoke run (single step).
+npm run perf -- run --steps smoke --reps 2 --url http://127.0.0.1:4317 --skip-build
+
+# 3. Full protocol (7 steps, 5 reps each plus 1 warmup).
+npm run perf -- run --url http://127.0.0.1:4317 --skip-build
+
+# 4. Compare two runs.
+npm run perf -- compare perf-runs/<runA> perf-runs/<runB>
+```
+
+Steps: `home_dpad_row`, `home_dpad_rows`, `grid_seeall`, `grid_library`,
+`transition_detail`, `transition_settings`, `settings_theme_toggle`.
+
+Each run writes:
+
+- `perf-runs/<run>/run.json` — latencies (p50/p95), phase attribution, long tasks.
+- `perf-runs/<run>/report.html` — self-contained report.
+- `perf-runs/<run>/trace-*.json.gz` — raw CDP traces.
+
+Options: `--cpu <n>` (CPU throttle, default 4x), `--net tv|off`, `--no-tv`
+(plain desktop profile), `--headed`, `--reps <n>`, `--steps <list|smoke|all>`,
+`--out <dir>`.
+
+Notes:
+
+- The harness drives a Tizen 5.5 user agent at 1920x1080 and sends TV remote
+  keys (d-pad, Enter, Back). Use `--no-tv` for a plain desktop profile.
+- Point the harness at its own server (e.g. port 4317), not a dev server serving
+  another checkout — the saved auth state is origin-bound.
+- `perf-runs/` is gitignored.
+
 ## Project Structure
 
 - `js/` contains app logic, UI screens, platform adapters, and player code.
