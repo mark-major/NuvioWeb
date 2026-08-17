@@ -198,14 +198,12 @@ async function enterContentFromSidebar(page) {
 
 export async function focusSettingsSection(page, sectionId) {
   const focusKey = `nav:${sectionId}`;
-  const railSelector = JSON.stringify(`.home-sidebar.root-sidebar [data-focus-key="${focusKey}"]`);
+  const railSelector = JSON.stringify(`.settings-sidebar [data-focus-key="${focusKey}"]`);
   for (let i = 0; i < 12; i++) {
     const state = await page.evaluate(
       `(() => {
         const focused = ${FOCUSED_EXPR};
-        const inRail = Boolean(
-          focused?.closest(".home-sidebar.root-sidebar, .settings-root-sidebar-slot")
-        );
+        const inRail = Boolean(focused?.closest(".settings-sidebar"));
         const match = Boolean(
           inRail && focused?.dataset?.focusKey === ${JSON.stringify(focusKey)}
         );
