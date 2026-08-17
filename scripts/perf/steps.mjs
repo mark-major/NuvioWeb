@@ -504,7 +504,12 @@ const STEPS = {
         async () => {
           await press(page, "Enter");
           await page.waitForFunction(
-            () => Boolean(document.querySelector(".series-detail-shell, .movie-detail-shell")),
+            () =>
+              Boolean(
+                document.querySelector(
+                  ".detail-loading-shell, .series-detail-shell, .movie-detail-shell"
+                )
+              ),
             { timeout: 20000 }
           );
         },
