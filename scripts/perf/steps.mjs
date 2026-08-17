@@ -493,9 +493,9 @@ const STEPS = {
   async transition_detail(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
     await dismissOverlays(page);
-    await focusTo(page, '[data-action="openDetail"]');
+    await focusTo(page, '[data-action="openDetail"].home-poster-card');
     return runReps(page, cdp, "transition_detail", reps, async (i) => {
-      await focusTo(page, '[data-action="openDetail"]');
+      await focusTo(page, '[data-action="openDetail"].home-poster-card');
       const segments = {};
       segments.forward = await buildSegment(
         page,
