@@ -493,9 +493,9 @@ const STEPS = {
   async transition_detail(page, cdp, { reps, traceDir }) {
     await waitForAppReady(page);
     await dismissOverlays(page);
-    await focusTo(page, '[data-action="openDetail"].home-poster-card, .home-continue-card');
+    await focusTo(page, '[data-action="openDetail"]');
     return runReps(page, cdp, "transition_detail", reps, async (i) => {
-      await focusTo(page, '[data-action="openDetail"].home-poster-card, .home-continue-card');
+      await focusTo(page, '[data-action="openDetail"]');
       const segments = {};
       segments.forward = await buildSegment(
         page,
@@ -621,12 +621,12 @@ const STEPS = {
         "main",
         async () => {
           const before = await page.evaluate(() =>
-            document.documentElement.style.getPropertyValue("--bg-color")
+            document.documentElement.style.getPropertyValue("--focus-color")
           );
           await press(page, "ArrowRight");
           await press(page, "Enter");
           const after = await page.evaluate(() =>
-            document.documentElement.style.getPropertyValue("--bg-color")
+            document.documentElement.style.getPropertyValue("--focus-color")
           );
           if (!warmup && before === after) throw new Error("theme did not change");
         },
