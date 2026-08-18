@@ -1,9 +1,12 @@
 import { httpRequest } from "../../../core/network/httpClient.js";
+import { addonResponseCache } from "../../../core/network/addonResponseCache.js";
 
 export const MetaApi = {
   async getMeta(url) {
-    return httpRequest(url, {
-      includeSessionAuth: false
-    });
+    return addonResponseCache.wrap(url, () =>
+      httpRequest(url, {
+        includeSessionAuth: false
+      })
+    );
   }
 };

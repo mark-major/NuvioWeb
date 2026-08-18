@@ -7,6 +7,10 @@ class CatalogRepository {
     this.catalogCache = new Map();
   }
 
+  clearCache() {
+    this.catalogCache.clear();
+  }
+
   async getCatalog({
     addonBaseUrl,
     addonId,
@@ -127,3 +131,7 @@ class CatalogRepository {
 }
 
 export const catalogRepository = new CatalogRepository();
+
+addonRepository.onInstalledAddonsChanged(() => {
+  catalogRepository.clearCache();
+});

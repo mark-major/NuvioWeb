@@ -1,6 +1,7 @@
 import { safeApiCall } from "../../core/network/safeApiCall.js";
 import { addonRepository } from "./addonRepository.js";
 import { MetaApi } from "../remote/api/metaApi.js";
+import { addonResponseCache } from "../../core/network/addonResponseCache.js";
 
 function normalizeDisplayText(value) {
   return String(value ?? "")
@@ -219,3 +220,8 @@ class MetaRepository {
 }
 
 export const metaRepository = new MetaRepository();
+
+addonRepository.onInstalledAddonsChanged(() => {
+  metaRepository.clearCache();
+  addonResponseCache.clear();
+});
