@@ -1,0 +1,18 @@
+<Project Sdk="Tizen.NET.Sdk/1.2.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>tizen70</TargetFramework>
+    <RootNamespace>NuvioTV.Tizen</RootNamespace>
+    <TizenCreateTpkOnBuild>true</TizenCreateTpkOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tizen.NET.API7" Version="7.0.0.15162" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NuvioTV.Core\NuvioTV.Core.csproj" />
+  </ItemGroup>
+
+</Project>

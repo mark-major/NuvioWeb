@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{73B761B0-4046-4274-B5B8-4F73B2614AE4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuvioTV.Core", "src\NuvioTV.Core\NuvioTV.Core.csproj", "{FC7BD1BC-8057-45C7-8AA9-335D3E08B5BA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuvioTV.Core.Tests", "src\NuvioTV.Core.Tests\NuvioTV.Core.Tests.csproj", "{D2765BF3-0219-4FAD-B940-70C86CEFD2C3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuvioTV.Tizen", "src\NuvioTV.Tizen\NuvioTV.Tizen.csproj", "{51CF44DB-D2F3-424A-BA0A-D68D3D536B0A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FC7BD1BC-8057-45C7-8AA9-335D3E08B5BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC7BD1BC-8057-45C7-8AA9-335D3E08B5BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC7BD1BC-8057-45C7-8AA9-335D3E08B5BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC7BD1BC-8057-45C7-8AA9-335D3E08B5BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2765BF3-0219-4FAD-B940-70C86CEFD2C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2765BF3-0219-4FAD-B940-70C86CEFD2C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2765BF3-0219-4FAD-B940-70C86CEFD2C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2765BF3-0219-4FAD-B940-70C86CEFD2C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51CF44DB-D2F3-424A-BA0A-D68D3D536B0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51CF44DB-D2F3-424A-BA0A-D68D3D536B0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51CF44DB-D2F3-424A-BA0A-D68D3D536B0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51CF44DB-D2F3-424A-BA0A-D68D3D536B0A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FC7BD1BC-8057-45C7-8AA9-335D3E08B5BA} = {73B761B0-4046-4274-B5B8-4F73B2614AE4}
+		{D2765BF3-0219-4FAD-B940-70C86CEFD2C3} = {73B761B0-4046-4274-B5B8-4F73B2614AE4}
+		{51CF44DB-D2F3-424A-BA0A-D68D3D536B0A} = {73B761B0-4046-4274-B5B8-4F73B2614AE4}
+	EndGlobalSection
+EndGlobal

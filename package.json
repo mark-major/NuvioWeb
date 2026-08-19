@@ -23,7 +23,11 @@
     "sync": "node ./scripts/sync-wrapper.mjs",
     "sync:tizen": "node ./scripts/sync-wrapper.mjs --tizen",
     "sync:webos": "node ./scripts/sync-wrapper.mjs --webos",
-    "sync:tizenbrew": "node ./scripts/sync-tizenbrew.mjs"
+    "sync:tizenbrew": "node ./scripts/sync-tizenbrew.mjs",
+    "native:strings": "node native/tools/convert-strings.mjs",
+    "native:env": "node native/tools/gen-env.mjs",
+    "native:build": "node native/tools/read-version.mjs && dotnet build native/src/NuvioTV.Tizen -c Release",
+    "native:deploy": "bash native/tools/tizen-dev.sh install-run"
   },
   "devDependencies": {
     "@csstools/postcss-global-data": "^4.0.0",

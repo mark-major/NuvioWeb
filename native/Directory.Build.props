@@ -1,0 +1,10 @@
+<Project>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NuvioTV.Core'">
+    <LangVersion>8.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+</Project>
