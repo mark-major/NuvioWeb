@@ -5,7 +5,7 @@
     <RootNamespace>NuvioTV.Core</RootNamespace>
     <AssemblyName>NuvioTV.Core</AssemblyName>
     <!-- NoWarn NU1902/NU1903: CVEs flagged by TreatWarningsAsErrors; version locked to 6.0.11 per project decision -->
-    <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
+    <NoWarn>$(NoWarn);NU1902;NU1903;CS8632</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
