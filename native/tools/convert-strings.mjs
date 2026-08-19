@@ -73,18 +73,9 @@ function decodeUnicodeEscapes(value) {
   );
 }
 
-/** \' \" \n \t \\ — decoded after unicode escapes, `\\` last. */
-function decodeBackslashEscapes(value) {
-  return value
-    .replace(/\\n/g, "\n")
-    .replace(/\\t/g, "\t")
-    .replace(/\\'/g, "'")
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, "\\");
-}
 
 function decodeString(text) {
-  return decodeBackslashEscapes(decodeUnicodeEscapes(decodeXmlEntities(text)));
+  return decodeUnicodeEscapes(decodeXmlEntities(text));
 }
 
 /** Parse one strings.xml into a flat key -> decoded-string map. */
