@@ -15,22 +15,20 @@
  * Zero dependencies: plain Node, regex parsing (mirrors the hand-rolled
  * parsing the webapp boot guard uses — no DOM parser available in Node).
  *
- * Escape decoding mirrors the webapp loader (js/i18n/index.js and
- * boot-guard.js), applied in the same order as the loader:
+ * Escape decoding mirrors the webapp loader (js/i18n/index.js), applied in
+ * the same order as the loader:
  *
  *   1. XML entity decode (what DOMParser#textContent produces):
- *      &amp; &lt; &gt; &quot; &apos; &#39;
- *   2. \uXXXX unicode escapes — the loader's decodeUnicodeEscapes regex
- *      `/\\u([0-9a-fA-F]{4})/g -> String.fromCharCode`. Note this runs on
- *      the raw text BEFORE any backslash-escape decoding, so a source
- *      `\\u2026` decodes to `\` + U+2026, exactly as the webapp renders it.
- *   3. Backslash escapes — `\'` -> `'` and `\"` -> `"` (decoded by the
- *      loader's interpolate, after parse-time unicode decoding), plus
- *      `\n` -> newline, `\t` -> tab, `\\` -> backslash. `\\` is decoded
- *      last so `\\n` stays a literal `\n`.
+ *      - Named entities: &amp; &lt; &gt; &quot; &apos; &#39;
+ *      - Numeric entities: &#160; (decimal) and &#xA0; (hex)
+ *      Single-pass decode: &amp;#160; yields literal "&#160;" (matches DOMParser)
+ *   2. Unicode escapes (\uXXXX) — the loader's decodeUnicodeEscapes regex
+ *      `/\\u([0-9a-fA-F]{4})/g -> String.fromCharCode`. Source `\\u2026`
+ *      decodes to `\` + U+2026 (backslash + ellipsis), exactly as webapp renders.
  *
- * Interpolation placeholders (%1$s, %1$d, %s, {{name}}) are NOT decoded
- * here — they survive verbatim for the runtime I18n layer to substitute.
+ * The tool does NOT decode backslash escapes (`\'` `\"` `\n` `\t` `\\`). These stay
+ * encoded in JSON by design — the runtime C# I18n.T interpolation decodes them
+ * (mirroring js/i18n/index.js interpolate()).
  * `<string>` entries without a `name` attribute are skipped; entries with
  * an empty body yield an empty string value.
  */
@@ -58,21 +56,37 @@ const ENTITY_MAP = {
 };
 
 /** Single-pass entity decode — never re-scans replacement text (matches
- *  DOMParser#textContent, which also decodes entities in one pass). */
+ *  DOMParser#textContent, which also decodes entities in one pass).
+ * Handles both named entities (&amp; &lt; &gt; &quot; &apos; &#39;) and
+ * numeric character references (&#160; decimal, &#xA0; hexadecimal).
+ * 
+ * Single-pass semantics: &amp;#160; yields literal "&#160;" (not decoded),
+ * because the numeric pattern is not recognized after &amp; is replaced.
+ * This matches DOMParser behavior. */
 function decodeXmlEntities(value) {
-  return value.replace(/&(amp|lt|gt|quot|apos|#39);/g, (match, entity) => {
-    const replacement = ENTITY_MAP[entity];
-    return replacement === undefined ? match : replacement;
-  });
+  return value.replace(/&(?:#(\d+)|#x([0-9a-fA-F]+)|(amp|lt|gt|quot|apos|#39));/g, 
+    (match, decimal, hex, named) => {
+      if (decimal !== undefined) {
+        // Decimal numeric entity: &#160;
+        return String.fromCodePoint(Number(decimal));
+      } else if (hex !== undefined) {
+        // Hexadecimal numeric entity: &#xA0;
+        return String.fromCodePoint(parseInt(hex, 16));
+      } else if (named !== undefined) {
+        // Named entity: &amp; &lt; etc.
+        const replacement = ENTITY_MAP[named];
+        return replacement === undefined ? match : replacement;
+      }
+      return match; // Should not reach here
+    }
+  );
 }
 
-/** Byte-for-byte the webapp's decodeUnicodeEscapes (js/i18n/index.js). */
 function decodeUnicodeEscapes(value) {
   return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) =>
     String.fromCharCode(parseInt(hex, 16))
   );
 }
-
 
 function decodeString(text) {
   return decodeUnicodeEscapes(decodeXmlEntities(text));
