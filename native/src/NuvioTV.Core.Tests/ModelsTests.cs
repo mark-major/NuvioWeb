@@ -22,17 +22,17 @@ namespace NuvioTV.Core.Tests
                 "Test Addon",
                 "Test Addon Display",
                 "1.0.0",
-                "Test description",
-                "https://example.com/logo.png",
+                "",
+                "",
                 "https://example.com",
-                new List<AddonCatalog> { new AddonCatalog("test-catalog", "test-type", "Test Catalog") },
+                new List<AddonCatalog> { new AddonCatalog { Id = "test-catalog", Name = "Test Catalog", Type = "test-type", ApiType = "test-api" } },
                 new List<string> { "movie", "series" },
                 new List<string> { "movie", "series" },
-                new List<AddonResource>()
+                new List<AddonResource> { new AddonResource { Name = "catalog", Types = new List<string> { "movie", "series" } } }
             );
 
             var json = JsonSerializer.Serialize(addon, JsonOptions);
-            var expected = @"{""id"":""test-addon"",""name"":""Test Addon"",""displayName"":""Test Addon Display"",""version"":""1.0.0"",""description"":""Test description"",""logo"":""https://example.com/logo.png"",""baseUrl"":""https://example.com"",""catalogs"":[{""id"":""test-catalog"",""type"":""test-type"",""name"":""Test Catalog""}],""types"":[""movie"",""series""],""rawTypes"":[""movie"",""series""],""resources"":[]}";
+            var expected = @"{""id"":""test-addon"",""name"":""Test Addon"",""displayName"":""Test Addon Display"",""version"":""1.0.0"",""description"":"""",""logo"":"""",""baseUrl"":""https://example.com"",""catalogs"":[{""id"":""test-catalog"",""name"":""Test Catalog"",""type"":""test-type"",""apiType"":""test-api"",""extra"":[]}],""types"":[""movie"",""series""],""rawTypes"":[""movie"",""series""],""resources"":[{""name"":""catalog"",""types"":[""movie"",""series""],""idPrefixes"":[]}]}";
             Assert.Equal(expected, json);
         }
 
@@ -48,12 +48,12 @@ namespace NuvioTV.Core.Tests
                 "https://example.com/logo.png",
                 "Test description",
                 new List<string> { "Action", "Drama" },
-                new List<MetaVideo> { new MetaVideo("1", "mp4", 720) },
+                new List<MetaVideo> { new MetaVideo { Id = "1", Title = "Episode 1", Season = 1, Episode = 1 } },
                 "2024"
             );
 
             var json = JsonSerializer.Serialize(meta, JsonOptions);
-            var expected = @"{""id"":""tmu123"",""type"":""movie"",""name"":""Test Movie"",""poster"":""https://example.com/poster.jpg"",""background"":""https://example.com/back.jpg"",""logo"":""https://example.com/logo.png"",""description"":""Test description"",""genres"":[""Action"",""Drama""],""videos"":[{""id"":""1"",""codec"":""mp4"",""height"":720}],""releaseInfo"":""2024""}";
+            var expected = @"{""id"":""tmu123"",""type"":""movie"",""name"":""Test Movie"",""poster"":""https://example.com/poster.jpg"",""background"":""https://example.com/back.jpg"",""logo"":""https://example.com/logo.png"",""description"":""Test description"",""genres"":[""Action"",""Drama""],""videos"":[{""id"":""1"",""title"":""Episode 1"",""season"":1,""episode"":1}],""releaseInfo"":""2024""}";
             Assert.Equal(expected, json);
         }
 
@@ -67,15 +67,36 @@ namespace NuvioTV.Core.Tests
                 Url = "https://example.com/stream.mp4",
                 YtId = "yt123",
                 InfoHash = "abc123",
-                FileIdx = 0,
+                FileIdx = null,
                 ExternalUrl = "https://example.com/external",
                 BehaviorHints = new StreamBehaviorHints { IsProxy = true },
                 AddonName = "Test Addon",
-                AddonLogo = "https://example.com/addonlogo.png"
+                AddonLogo = "https://example.com/addonlogo.png",
+                ClientResolve = new ClientResolve
+                {
+                    Type = "torrent",
+                    Service = "real-debrid",
+                    InfoHash = "abc123",
+                    FileIdx = 0,
+                    Filename = "test.mkv",
+                    TorrentName = "Test Torrent",
+                    MagnetUri = "magnet:?xt=abc123",
+                    Sources = new List<string> { "tracker1", "tracker2" }
+                },
+                DebridCacheStatus = new DebridCacheStatus
+                {
+                    ProviderId = "real-debrid",
+                    ProviderName = "Real-Debrid",
+                    State = "CACHED",
+                    CachedName = "test.mkv",
+                    CachedSize = 1073741824
+                }
             };
 
             var json = JsonSerializer.Serialize(stream, JsonOptions);
-            var expected = @"{""name"":""Test Stream"",""title"":""Test Title"",""url"":""https://example.com/stream.mp4"",""ytId"":""yt123"",""infoHash"":""abc123"",""fileIdx"":0,""externalUrl"":""https://example.com/external"",""behaviorHints"":{""isProxy"":true,""notWebReady"":false},""addonName"":""Test Addon"",""addonLogo"":""https://example.com/addonlogo.png"",""subtitles"":[],""sources"":[],""qualityValue"":0,""clientResolve"":false}";
+            Console.WriteLine("Actual JSON: " + json);
+            var expected = @"{""name"":""Test Stream"",""title"":""Test Title"",""url"":""https://example.com/stream.mp4"",""ytId"":""yt123"",""infoHash"":""abc123"",""fileIdx"":null,""externalUrl"":""https://example.com/external"",""behaviorHints"":{""isProxy"":true,""notWebReady"":false},""addonName"":""Test Addon"",""addonLogo"":""https://example.com/addonlogo.png"",""subtitles"":[],""sources"":[],""qualityValue"":0,""clientResolve"":{""type"":""torrent"",""service"":""real-debrid"",""infoHash"":""abc123"",""fileIdx"":0,""filename"":""test.mkv"",""torrentName"":""Test Torrent"",""magnetUri"":""magnet:?xt=abc123"",""sources"":[""tracker1"",""tracker2""]},""debridCacheStatus"":{""providerId"":""real-debrid"",""providerName"":""Real-Debrid"",""state"":""CACHED"",""cachedName"":""test.mkv"",""cachedSize"":1073741824}}";
+            Console.WriteLine("Expected JSON: " + expected);
             Assert.Equal(expected, json);
         }
 
@@ -212,7 +233,7 @@ namespace NuvioTV.Core.Tests
             );
 
             var json = JsonSerializer.Serialize(envelope, JsonOptions);
-            var expected = @"{""version"":1,""profiles"":{""1"":{""value"":""test1""},""2"":{""value"":""test2""}}}";
+            var expected = @"{""__profileScoped"":true,""version"":1,""profiles"":{""1"":{""value"":""test1""},""2"":{""value"":""test2""}}}";
             Assert.Equal(expected, json);
         }
     }

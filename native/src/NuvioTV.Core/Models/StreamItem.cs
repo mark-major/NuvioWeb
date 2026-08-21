@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -28,7 +29,7 @@ namespace NuvioTV.Core.Models
         public string InfoHash { get; set; }
 
         [JsonPropertyName("fileIdx")]
-        public int FileIdx { get; set; }
+        public int? FileIdx { get; set; }
 
         [JsonPropertyName("externalUrl")]
         public string ExternalUrl { get; set; }
@@ -55,10 +56,10 @@ namespace NuvioTV.Core.Models
         public int QualityValue { get; set; }
 
         [JsonPropertyName("clientResolve")]
-        public bool ClientResolve { get; set; }
+        public ClientResolve ClientResolve { get; set; }
 
         [JsonPropertyName("debridCacheStatus")]
-        public string DebridCacheStatus { get; set; }
+        public DebridCacheStatus DebridCacheStatus { get; set; }
 
         public StreamItem()
         {

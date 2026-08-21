@@ -1,27 +1,27 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace NuvioTV.Core.Models
 {
     /// <summary>
-    /// Represents a resource within an addon.
-    /// Source: js/domain/model/addon.js resources property
+    /// Represents a resource provided by an addon.
+    /// Source: js/data/repository/addonRepository.js (canonical shape)
     /// </summary>
     public sealed class AddonResource
     {
         [JsonPropertyName("name")]
-        public string Name { get; }
+        public string Name { get; set; }
 
-        [JsonPropertyName("type")]
-        public string Type { get; }
+        [JsonPropertyName("types")]
+        public IReadOnlyList<string> Types { get; set; }
 
-        [JsonPropertyName("url")]
-        public string Url { get; }
+        [JsonPropertyName("idPrefixes")]
+        public IReadOnlyList<string> IdPrefixes { get; set; }
 
-        public AddonResource(string name, string type, string url)
+        public AddonResource()
         {
-            Name = name;
-            Type = type;
-            Url = url;
+            Types = new List<string>();
+            IdPrefixes = new List<string>();
         }
     }
 }
