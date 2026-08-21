@@ -153,7 +153,8 @@ namespace NuvioTV.Core.Configuration
             AppVersion = informationalVersion?.InformationalVersion ?? "";
         }
 
-        internal static void ResetForTests()
+        // Test isolation hook; also usable by the app to re-load config cleanly.
+        public static void ResetForTests()
         {
             SupabaseUrl = "";
             SupabaseAnonKey = "";

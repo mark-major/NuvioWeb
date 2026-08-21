@@ -23,8 +23,8 @@ namespace NuvioTV.Core.Networking
         public string Code { get; }
         public string Detail { get; }
 
-        public NuvioHttpException(int status, string code, string detail)
-            : base(detail ?? $"HTTP error: {status}")
+        public NuvioHttpException(int status, string code, string detail, string rawBody = null)
+            : base(detail ?? rawBody ?? $"HTTP error: {status}")
         {
             Status = status;
             Code = code;
@@ -125,6 +125,7 @@ namespace NuvioTV.Core.Networking
             var status = (int)response.StatusCode;
             string code = null;
             string detail = null;
+            string rawBody = null;
 
             try
             {
@@ -134,19 +135,25 @@ namespace NuvioTV.Core.Networking
                     try
                     {
                         var errorDoc = JsonDocument.Parse(content);
-                        if (errorDoc.RootElement.TryGetProperty("code", out var codeElem))
+                        // JS parity (js/core/network/httpClient.js:78-86): string "code" → error.code,
+                        // string "message" → error.detail; non-string values are skipped, not fatal.
+                        if (errorDoc.RootElement.TryGetProperty("code", out var codeElem) && codeElem.ValueKind == JsonValueKind.String)
                         {
                             code = codeElem.GetString();
                         }
-                        if (errorDoc.RootElement.TryGetProperty("detail", out var detailElem))
+                        if (errorDoc.RootElement.TryGetProperty("message", out var messageElem) && messageElem.ValueKind == JsonValueKind.String)
+                        {
+                            detail = messageElem.GetString();
+                        }
+                        else if (detail == null && errorDoc.RootElement.TryGetProperty("detail", out var detailElem) && detailElem.ValueKind == JsonValueKind.String)
                         {
                             detail = detailElem.GetString();
                         }
                     }
                     catch (JsonException)
                     {
-                        // If JSON parsing fails, use raw content as detail
-                        detail = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
+                        // JS parity: keep the raw response text as the error message for non-JSON bodies.
+                        rawBody = content;
                     }
                 }
             }
@@ -156,7 +163,7 @@ namespace NuvioTV.Core.Networking
                 detail = response.ReasonPhrase;
             }
 
-            throw new NuvioHttpException(status, code, detail);
+            throw new NuvioHttpException(status, code, detail, rawBody);
         }
 
         private bool IsTokenExpiringSoon(string token)
@@ -189,7 +196,7 @@ namespace NuvioTV.Core.Networking
 
             try
             {
-                var payload = parts[1];
+                var payload = parts[1].Replace('-', '+').Replace('_', '/');
                 // Add padding if needed
                 switch (payload.Length % 4)
                 {

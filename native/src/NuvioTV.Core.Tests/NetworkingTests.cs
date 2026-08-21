@@ -174,6 +174,67 @@ namespace NuvioTV.Core.Tests
             Assert.Equal("Resource not found", exception.Detail);
         }
 
+        [Fact]
+        public async Task GetJsonAsync_HttpError_MessageKeyMapsToDetail()
+        {
+            var handler = new StubHandler(request =>
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    // Supabase/PostgREST error bodies carry "message" (JS maps parsed.message → error.detail).
+                    Content = new StringContent("{\"code\":\"PGRST116\",\"message\":\"No rows found\"}", Encoding.UTF8, "application/json")
+                };
+            });
+            var client = new NuvioHttpClient(new HttpClient(handler), new StubSessionTokenProvider("valid-token", "valid-refresh"));
+
+            var exception = await Assert.ThrowsAsync<NuvioHttpException>(() =>
+                client.GetJsonAsync<TestResponse>("http://test/api")
+            );
+
+            Assert.Equal("PGRST116", exception.Code);
+            Assert.Equal("No rows found", exception.Detail);
+        }
+
+        [Fact]
+        public async Task GetJsonAsync_HttpError_NonStringCodeIsSkipped()
+        {
+            var handler = new StubHandler(request =>
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("{\"code\": 42, \"message\": \"Human readable\"}", Encoding.UTF8, "application/json")
+                };
+            });
+            var client = new NuvioHttpClient(new HttpClient(handler), new StubSessionTokenProvider("valid-token", "valid-refresh"));
+
+            var exception = await Assert.ThrowsAsync<NuvioHttpException>(() =>
+                client.GetJsonAsync<TestResponse>("http://test/api")
+            );
+
+            Assert.Null(exception.Code);
+            Assert.Equal("Human readable", exception.Detail);
+        }
+
+        [Fact]
+        public async Task GetJsonAsync_HttpError_NonJsonBodyKeepsRawTextAsMessage()
+        {
+            const string rawBody = "<html>Gateway timeout</html>";
+            var handler = new StubHandler(request =>
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadGateway)
+                {
+                    Content = new StringContent(rawBody, Encoding.UTF8, "text/html")
+                };
+            });
+            var client = new NuvioHttpClient(new HttpClient(handler), new StubSessionTokenProvider("valid-token", "valid-refresh"));
+
+            var exception = await Assert.ThrowsAsync<NuvioHttpException>(() =>
+                client.GetJsonAsync<TestResponse>("http://test/api")
+            );
+
+            Assert.Equal(rawBody, exception.Message);
+        }
+
         // Additional test: JWT payload decoding (exp claim extraction)
         [Fact]
         public void JwtDecoder_DecodeToken_ExtractsExpClaim()
@@ -189,6 +250,32 @@ namespace NuvioTV.Core.Tests
             var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Assert.True(exp.Value > now); // Should be in the future
             Assert.True(exp.Value < now + 400); // Should be within expected range
+        }
+
+        [Fact]
+        public void JwtDecoder_DecodeToken_WithBase64UrlCharacters_ExtractsExpClaim()
+        {
+            // Payload JSON chosen so its base64url encoding contains '-' and '_' (real-world JWTs do).
+            var payloadJson = "{\"exp\":1893456000,\"typ\":\"JWT\",\"aud\":\"authenticated\"}";
+            var token = JwtGenerator.GenerateRaw(payloadJson, expiresInSeconds: null);
+
+            var exp = JwtDecoder.GetExpirationSeconds(token);
+
+            Assert.NotNull(exp);
+            Assert.Equal(1893456000L, exp.Value);
+        }
+
+        [Fact]
+        public void JwtDecoder_DecodeToken_NonJwt_ReturnsNull()
+        {
+            Assert.Null(JwtDecoder.GetExpirationSeconds("not-a-jwt-token"));
+        }
+
+        [Fact]
+        public void JwtDecoder_DecodeToken_InvalidExp_ReturnsNull()
+        {
+            var token = JwtGenerator.GenerateRaw("{\"exp\":\"soon\"}", expiresInSeconds: null);
+            Assert.Null(JwtDecoder.GetExpirationSeconds(token));
         }
 
         // Test (f): includeSessionAuth=false omits Bearer header
@@ -386,6 +473,14 @@ namespace NuvioTV.Core.Tests
             
             return $"{headerBase64}.{payloadBase64}.{signature}";
         }
+        public static string GenerateRaw(string payloadJson, int? expiresInSeconds)
+        {
+            var header = new { alg = "HS256", typ = "JWT" };
+            var headerBase64 = Base64UrlEncode(JsonSerializer.Serialize(header));
+            var payloadBase64 = Base64UrlEncode(payloadJson);
+            return $"{headerBase64}.{payloadBase64}.test-signature";
+        }
+
 
         private static string Base64UrlEncode(string input)
         {

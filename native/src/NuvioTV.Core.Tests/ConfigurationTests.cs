@@ -85,8 +85,7 @@ namespace NuvioTV.Core.Tests
             const string minimalJson = @"{
   ""supabaseUrl"": ""https://minimal.supabase.co""
 }";
-            // Act
-            using (var stream = new MemoryStream(jsonBytes))
+            using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(minimalJson)))
             {
                 AppConfig.Load(stream);
             }
@@ -130,8 +129,7 @@ namespace NuvioTV.Core.Tests
   ""supabaseAnonKey"": null,
   ""youtubeProxyUrl"": null
 }";
-            // Act
-            using (var stream = new MemoryStream(jsonBytes))
+            using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(nullJson)))
             {
                 AppConfig.Load(stream);
             }
@@ -155,7 +153,7 @@ namespace NuvioTV.Core.Tests
   ""anotherUnknownKey"": 123
 }";
             // Act - should not throw
-            using (var stream = new MemoryStream(jsonBytes))
+            using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(unknownKeysJson)))
             {
                 AppConfig.Load(stream);
             }
@@ -172,6 +170,7 @@ namespace NuvioTV.Core.Tests
             AppConfig.ResetForTests();
             const string simpleJson = @"{ ""supabaseUrl"": ""test"" }";
             var jsonBytes = System.Text.Encoding.UTF8.GetBytes(simpleJson);
+            using (var stream = new MemoryStream(jsonBytes))
             {
                 AppConfig.Load(stream);
             }
