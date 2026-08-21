@@ -28,6 +28,7 @@ namespace NuvioTV.Tizen.Screens
         private readonly TextLabel _description = new TextLabel();
         private readonly View _seasonRow = new View();
         private readonly View _episodeRow = new View();
+        private readonly Detail.DetailEnrichmentView _enrichment = new Detail.DetailEnrichmentView();
 
         private Core.Models.Meta _meta;
         private List<Core.Models.MetaVideo> _seasonEpisodes = new List<Core.Models.MetaVideo>();
@@ -62,6 +63,9 @@ namespace NuvioTV.Tizen.Screens
             _episodeRow.Position = new Position(DesignTokens.DetailSafeX, 850);
             _episodeRow.Size = new Size(1920 - DesignTokens.DetailSafeX * 2, 180);
             Add(_episodeRow);
+
+            _enrichment.Position = new Position(DesignTokens.DetailSafeX, 1050);
+            Add(_enrichment);
         }
 
         public override async Task MountAsync(RouteParams p, NavigationContext ctx)
@@ -80,6 +84,10 @@ namespace NuvioTV.Tizen.Screens
             }
 
             RenderMeta();
+            if (_meta != null)
+            {
+                await _enrichment.LoadAsync(_meta.Name, _meta.Id);
+            }
             await Task.CompletedTask;
         }
 
