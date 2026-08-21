@@ -32,6 +32,22 @@ namespace NuvioTV.Tizen.NuiFoundation
         /// <summary>Application router; assigned during NuvioApp boot.</summary>
         public static Navigation.Router Router { get; set; }
 
+        /// <summary>Lazily created addon repository over the shared file store.</summary>
+        private static Core.Addons.AddonRepository _addons;
+        public static Core.Addons.AddonRepository Addons
+        {
+            get
+            {
+                if (_addons == null)
+                {
+                    var nuvioHttp = new global::NuvioTV.Core.Networking.NuvioHttpClient(Http, Auth);
+                    _addons = new Core.Addons.AddonRepository(FileStore,
+                        new Core.Addons.StremioAddonClient(nuvioHttp));
+                }
+                return _addons;
+            }
+        }
+
         public static void Initialize(string resourceDir, string dataDir)
         {
             ResourceDir = resourceDir;
