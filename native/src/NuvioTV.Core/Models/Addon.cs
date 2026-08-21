@@ -39,6 +39,9 @@ namespace NuvioTV.Core.Models
         [JsonPropertyName("rawTypes")]
         public IReadOnlyList<string> RawTypes { get; }
 
+        [JsonPropertyName("idPrefixes")]
+        public IReadOnlyList<string> IdPrefixes { get; }
+
         [JsonPropertyName("resources")]
         public IReadOnlyList<AddonResource> Resources { get; }
 
@@ -53,6 +56,7 @@ namespace NuvioTV.Core.Models
             IReadOnlyList<AddonCatalog> catalogs,
             IReadOnlyList<string> types,
             IReadOnlyList<string> rawTypes,
+            IReadOnlyList<string> idPrefixes,
             IReadOnlyList<AddonResource> resources
         )
         {
@@ -66,6 +70,7 @@ namespace NuvioTV.Core.Models
             Catalogs = catalogs;
             Types = types;
             RawTypes = rawTypes;
+            IdPrefixes = idPrefixes ?? new List<string>();
             Resources = resources;
         }
     }

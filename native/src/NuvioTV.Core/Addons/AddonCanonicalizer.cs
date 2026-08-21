@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace NuvioTV.Core.Addons
@@ -32,6 +33,9 @@ namespace NuvioTV.Core.Addons
         [JsonPropertyName("types")]
         public IReadOnlyList<string> Types { get; set; }
 
+        [JsonPropertyName("idPrefixes")]
+        public IReadOnlyList<string> IdPrefixes { get; set; }
+
         [JsonPropertyName("resources")]
         public IReadOnlyList<AddonManifestResource> Resources { get; set; }
 
@@ -39,6 +43,12 @@ namespace NuvioTV.Core.Addons
         public IReadOnlyList<AddonManifestCatalog> Catalogs { get; set; }
     }
 
+    /// <summary>
+    /// Manifest resource entry. Accepts both the object form
+    /// ({name, types, idPrefixes}) and the shorthand string form ("catalog").
+    /// js addonRepository.js parseResources (642-664).
+    /// </summary>
+    [JsonConverter(typeof(AddonManifestResourceConverter))]
     public sealed class AddonManifestResource
     {
         [JsonPropertyName("name")]
@@ -49,6 +59,83 @@ namespace NuvioTV.Core.Addons
 
         [JsonPropertyName("idPrefixes")]
         public IReadOnlyList<string> IdPrefixes { get; set; }
+    }
+
+    public sealed class AddonManifestResourceConverter : JsonConverter<AddonManifestResource>
+    {
+        public override AddonManifestResource Read(
+            ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                return new AddonManifestResource { Name = reader.GetString() };
+            }
+            if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                var resource = new AddonManifestResource();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                {
+                    if (reader.TokenType != JsonTokenType.PropertyName)
+                    {
+                        continue;
+                    }
+                    var property = reader.GetString();
+                    if (!reader.Read())
+                    {
+                        break;
+                    }
+                    if (property == "name" && reader.TokenType == JsonTokenType.String)
+                    {
+                        resource.Name = reader.GetString();
+                    }
+                    else if (property == "types" && reader.TokenType == JsonTokenType.StartArray)
+                    {
+                        resource.Types = ReadStringArray(ref reader);
+                    }
+                    else if (property == "idPrefixes" && reader.TokenType == JsonTokenType.StartArray)
+                    {
+                        resource.IdPrefixes = ReadStringArray(ref reader);
+                    }
+                    else
+                    {
+                        reader.Skip();
+                    }
+                }
+                return resource;
+            }
+            throw new JsonException("Invalid addon resource entry");
+        }
+
+        private static IReadOnlyList<string> ReadStringArray(ref Utf8JsonReader reader)
+        {
+            var values = new List<string>();
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+            {
+                if (reader.TokenType == JsonTokenType.String)
+                {
+                    values.Add(reader.GetString());
+                }
+            }
+            return values;
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer, AddonManifestResource value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("name", value?.Name);
+            if (value?.Types != null)
+            {
+                writer.WritePropertyName("types");
+                JsonSerializer.Serialize(writer, value.Types, options);
+            }
+            if (value?.IdPrefixes != null)
+            {
+                writer.WritePropertyName("idPrefixes");
+                JsonSerializer.Serialize(writer, value.IdPrefixes, options);
+            }
+            writer.WriteEndObject();
+        }
     }
 
     public sealed class AddonManifestCatalog
@@ -64,6 +151,13 @@ namespace NuvioTV.Core.Addons
 
         [JsonPropertyName("extra")]
         public IReadOnlyList<AddonManifestExtra> Extra { get; set; }
+
+        // Legacy manifest format: extraSupported/extraRequired as plain name arrays.
+        [JsonPropertyName("extraSupported")]
+        public IReadOnlyList<string> ExtraSupported { get; set; }
+
+        [JsonPropertyName("extraRequired")]
+        public IReadOnlyList<string> ExtraRequired { get; set; }
     }
 
     public sealed class AddonManifestExtra

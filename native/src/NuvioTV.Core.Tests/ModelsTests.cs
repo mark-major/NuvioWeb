@@ -28,11 +28,13 @@ namespace NuvioTV.Core.Tests
                 new List<AddonCatalog> { new AddonCatalog { Id = "test-catalog", Name = "Test Catalog", Type = "test-type", ApiType = "test-api" } },
                 new List<string> { "movie", "series" },
                 new List<string> { "movie", "series" },
+                new List<string>(),
                 new List<AddonResource> { new AddonResource { Name = "catalog", Types = new List<string> { "movie", "series" } } }
             );
 
             var json = JsonSerializer.Serialize(addon, JsonOptions);
-            var expected = @"{""id"":""test-addon"",""name"":""Test Addon"",""displayName"":""Test Addon Display"",""version"":""1.0.0"",""description"":"""",""logo"":"""",""baseUrl"":""https://example.com"",""catalogs"":[{""id"":""test-catalog"",""name"":""Test Catalog"",""type"":""test-type"",""apiType"":""test-api"",""extra"":[]}],""types"":[""movie"",""series""],""rawTypes"":[""movie"",""series""],""resources"":[{""name"":""catalog"",""types"":[""movie"",""series""],""idPrefixes"":[]}]}";
+
+            var expected = @"{""id"":""test-addon"",""name"":""Test Addon"",""displayName"":""Test Addon Display"",""version"":""1.0.0"",""description"":"""",""logo"":"""",""baseUrl"":""https://example.com"",""catalogs"":[{""id"":""test-catalog"",""name"":""Test Catalog"",""type"":""test-type"",""apiType"":""test-api"",""extra"":[]}],""types"":[""movie"",""series""],""rawTypes"":[""movie"",""series""],""idPrefixes"":[],""resources"":[{""name"":""catalog"",""types"":[""movie"",""series""],""idPrefixes"":[]}]}";
             Assert.Equal(expected, json);
         }
 
