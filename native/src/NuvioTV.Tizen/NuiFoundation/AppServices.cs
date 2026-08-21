@@ -4,9 +4,9 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NuvioTV.Core.Auth;
+using NuvioTV.Core.Media;
 using NuvioTV.Core.Storage;
 using NuvioTV.Tizen.Platform;
-
 namespace NuvioTV.Tizen.NuiFoundation
 {
     /// <summary>
@@ -26,6 +26,8 @@ namespace NuvioTV.Tizen.NuiFoundation
         /// <summary>Writable app-data dir for the JSON key-value store.</summary>
         public static string DataDir { get; private set; }
 
+        public static ImageCache Images { get; private set; }
+
         public static void Initialize(string resourceDir, string dataDir)
         {
             ResourceDir = resourceDir;
@@ -37,6 +39,7 @@ namespace NuvioTV.Tizen.NuiFoundation
                 AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
             });
             Auth = new AuthManager(Http, FileStore);
+            Images = new ImageCache(FileStore, Http, dataDir);
             DeviceRegistration = new DeviceSessionRegistration(
                 Http,
                 Auth,
@@ -44,6 +47,7 @@ namespace NuvioTV.Tizen.NuiFoundation
                 new TizenDeviceMetadata(),
                 logWarning: message => global::Tizen.Log.Warn("NuvioTV", "device-registration: " + message));
         }
+
 
         /// <summary>I18n loader: locale name → res/i18n/{locale}.json contents.</summary>
         public static Task<string> LoadLocaleJsonAsync(string locale)
