@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace NuvioTV.Tizen.Platform
     /// One file per key under <appdata>/store/, with atomic writes (tmp+rename),
     /// read-through memory cache, and debounced flush (250ms).
     /// </summary>
-    public sealed class JsonFileStore : NuvioTV.Core.Storage.IKeyValueStore
+    public sealed class JsonFileStore : NuvioTV.Core.Storage.IKeyValueStore, IDisposable
     {
         private const string StoreDirectoryName = "store";
         private const int FlushDebounceMs = 250;

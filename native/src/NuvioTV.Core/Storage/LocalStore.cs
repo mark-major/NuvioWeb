@@ -17,6 +17,11 @@ namespace NuvioTV.Core.Storage
         };
 
         /// <summary>
+        /// Exposes the shared JSON serialization options for use by other storage components.
+        /// </summary>
+        public static JsonSerializerOptions JsonOptions => _jsonOptions;
+
+        /// <summary>
         /// Gets a deserialized value from storage, or default if not found.
         /// </summary>
         public static async Task<T> GetAsync<T>(string key, IKeyValueStore store, T defaultValue = default)

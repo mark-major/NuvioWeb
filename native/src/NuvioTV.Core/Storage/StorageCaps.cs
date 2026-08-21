@@ -93,10 +93,10 @@ namespace NuvioTV.Core.Storage
             var now = DateTime.UtcNow;
             var thirtyDaysAgo = now.AddDays(-30);
 
-            // Keep items within 30 days, cap at 500, sort by UpdatedAt ascending (oldest to newest)
+            // Keep items within 30 days, cap at 500, sort by UpdatedAt descending (newest first)
             return itemList
                 .Where(item => updatedAtSelector(item) >= thirtyDaysAgo)
-                .OrderBy(updatedAtSelector)
+                .OrderByDescending(updatedAtSelector)
                 .Take(HomeImageCacheCap);
         }
 

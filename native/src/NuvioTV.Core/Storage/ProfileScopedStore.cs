@@ -17,6 +17,7 @@ namespace NuvioTV.Core.Storage
         private const string ProfileScopedMarker = "__profileScoped";
         private const int CurrentProfileScopedVersion = 1;
         private const string DefaultProfileId = "1";
+        private const string ProfilesStorageKey = "profiles"; // Matches webapp PROFILES_KEY
 
         private readonly string _key;
         private readonly Func<T, T> _normalize;
@@ -50,8 +51,8 @@ namespace NuvioTV.Core.Storage
                 if (partial == null) return current;
                 
                 // For objects, this is a simple implementation - callers should provide custom merge logic
-                var defaultMerge = JsonSerializer.Serialize(partial);
-                return JsonSerializer.Deserialize<T>(defaultMerge);
+                var defaultMerge = JsonSerializer.Serialize(partial, LocalStore.JsonOptions);
+                return JsonSerializer.Deserialize<T>(defaultMerge, LocalStore.JsonOptions);
             });
         }
 
@@ -82,6 +83,72 @@ namespace NuvioTV.Core.Storage
             var raw = string.IsNullOrEmpty(profileId) ? DefaultProfileId : profileId.Trim();
             return string.IsNullOrEmpty(raw) ? DefaultProfileId : raw;
         }
+        /// <summary>
+        /// Gets all known profile IDs from the profiles storage, ensuring "1" is included.
+        /// Matches js/data/local/profileScopedStore.js getKnownProfileIds() semantics.
+        /// </summary>
+        private static async Task<string[]> GetKnownProfileIdsAsync(IKeyValueStore store)
+        {
+            try
+            {
+                var profilesJson = await store.GetAsync(ProfilesStorageKey);
+                if (string.IsNullOrEmpty(profilesJson))
+                {
+                    return new[] { DefaultProfileId };
+                }
+
+                // Deserialize profiles array and extract IDs
+                var profiles = JsonSerializer.Deserialize<JsonElement[]>(profilesJson, LocalStore.JsonOptions);
+                var ids = new List<string>();
+
+                if (profiles != null)
+                {
+                    foreach (var profile in profiles)
+                    {
+                        // Extract id or profileIndex field
+                        string id = null;
+                        if (profile.ValueKind == JsonValueKind.Object)
+                        {
+                            if (profile.TryGetProperty("id", out var idProperty))
+                            {
+                                id = idProperty.GetString();
+                            }
+                            else if (profile.TryGetProperty("profileIndex", out var indexProperty))
+                            {
+                                id = indexProperty.GetString();
+                            }
+                        }
+                        else if (profile.ValueKind == JsonValueKind.String)
+                        {
+                            id = profile.GetString();
+                        }
+
+                        if (!string.IsNullOrEmpty(id))
+                        {
+                            var trimmedId = id.Trim();
+                            if (!string.IsNullOrEmpty(trimmedId))
+                            {
+                                ids.Add(trimmedId);
+                            }
+                        }
+                    }
+                }
+
+                // Ensure "1" is first
+                if (!ids.Contains(DefaultProfileId))
+                {
+                    ids.Insert(0, DefaultProfileId);
+                }
+
+                return ids.Distinct().ToArray();
+            }
+            catch
+            {
+                // On any error, return default profile
+                return new[] { DefaultProfileId };
+            }
+        }
+
 
         /// <summary>
         /// Deep clones a value using JSON serialization.
@@ -93,8 +160,8 @@ namespace NuvioTV.Core.Storage
                 return default;
             }
 
-            var json = JsonSerializer.Serialize(value);
-            return JsonSerializer.Deserialize<T>(json);
+            var json = JsonSerializer.Serialize(value, LocalStore.JsonOptions);
+            return JsonSerializer.Deserialize<T>(json, LocalStore.JsonOptions);
         }
 
         /// <summary>
@@ -138,10 +205,10 @@ namespace NuvioTV.Core.Storage
                 var normalizedProfileId = NormalizeProfileId(entry.Key);
                 
                 // Deserialize, normalize, and re-serialize
-                var value = JsonSerializer.Deserialize<T>(entry.Value.GetRawText());
+                var value = JsonSerializer.Deserialize<T>(entry.Value.GetRawText(), LocalStore.JsonOptions);
                 var normalizedValue = _normalize(value ?? default);
                 
-                var normalizedJson = JsonSerializer.SerializeToElement(normalizedValue);
+                var normalizedJson = JsonSerializer.SerializeToElement(normalizedValue, LocalStore.JsonOptions);
                 normalized[normalizedProfileId] = normalizedJson;
             }
 
@@ -161,7 +228,7 @@ namespace NuvioTV.Core.Storage
             {
                 try
                 {
-                    envelope = JsonSerializer.Deserialize<ProfileScopedEnvelope>(rawJson);
+                    envelope = JsonSerializer.Deserialize<ProfileScopedEnvelope>(rawJson, LocalStore.JsonOptions);
                 }
                 catch (JsonException)
                 {
@@ -179,7 +246,7 @@ namespace NuvioTV.Core.Storage
 
                 if (needsUpdate)
                 {
-                    var updatedJson = JsonSerializer.Serialize(envelope);
+                    var updatedJson = JsonSerializer.Serialize(envelope, LocalStore.JsonOptions);
                     await _store.SetAsync(_key, updatedJson);
                 }
 
@@ -193,22 +260,21 @@ namespace NuvioTV.Core.Storage
             }
 
             // Migrate legacy unscoped value to all known profiles
-            var legacyValue = JsonSerializer.Deserialize<T>(rawJson);
+            var legacyValue = JsonSerializer.Deserialize<T>(rawJson, LocalStore.JsonOptions);
             var normalizedLegacy = _normalize(legacyValue ?? default);
             
             var migrated = CreateEmptyEnvelope();
             
-            // For now, just migrate to profile "1" (the primary profile)
-            // In a full implementation, we'd get all known profile IDs
-            var profileIds = new[] { DefaultProfileId };
+            // Get all known profile IDs (matches webapp getKnownProfileIds semantics)
+            var profileIds = await GetKnownProfileIdsAsync(_store);
             
             foreach (var profileId in profileIds)
             {
                 var clonedValue = CloneValue(normalizedLegacy);
-                migrated.Profiles[profileId] = JsonSerializer.SerializeToElement(clonedValue);
+                migrated.Profiles[profileId] = JsonSerializer.SerializeToElement(clonedValue, LocalStore.JsonOptions);
             }
 
-            var migratedJson = JsonSerializer.Serialize(migrated);
+            var migratedJson = JsonSerializer.Serialize(migrated, LocalStore.JsonOptions);
             await _store.SetAsync(_key, migratedJson);
 
             return migrated;
@@ -219,7 +285,7 @@ namespace NuvioTV.Core.Storage
         /// </summary>
         private async Task PersistEnvelopeAsync(ProfileScopedEnvelope envelope)
         {
-            var json = JsonSerializer.Serialize(envelope);
+            var json = JsonSerializer.Serialize(envelope, LocalStore.JsonOptions);
             await _store.SetAsync(_key, json);
         }
 
@@ -233,7 +299,7 @@ namespace NuvioTV.Core.Storage
             if (envelope.Profiles.ContainsKey(normalizedProfileId))
             {
                 var element = envelope.Profiles[normalizedProfileId];
-                return JsonSerializer.Deserialize<T>(element.GetRawText());
+                return JsonSerializer.Deserialize<T>(element.GetRawText(), LocalStore.JsonOptions);
             }
 
             // Use profile "1" as seed, or create empty
@@ -241,13 +307,13 @@ namespace NuvioTV.Core.Storage
             if (envelope.Profiles.ContainsKey(DefaultProfileId))
             {
                 var primaryElement = envelope.Profiles[DefaultProfileId];
-                seed = JsonSerializer.Deserialize<T>(primaryElement.GetRawText());
+                seed = JsonSerializer.Deserialize<T>(primaryElement.GetRawText(), LocalStore.JsonOptions);
             }
 
             var clonedSeed = CloneValue(seed ?? default);
             var normalizedSeed = _normalize(clonedSeed ?? default);
             
-            envelope.Profiles[normalizedProfileId] = JsonSerializer.SerializeToElement(normalizedSeed);
+            envelope.Profiles[normalizedProfileId] = JsonSerializer.SerializeToElement(normalizedSeed, LocalStore.JsonOptions);
             await PersistEnvelopeAsync(envelope);
 
             return normalizedSeed;
@@ -281,7 +347,7 @@ namespace NuvioTV.Core.Storage
             var clonedValue = CloneValue(nextValue);
             var normalizedValue = _normalize(clonedValue ?? default);
             
-            envelope.Profiles[normalizedProfileId] = JsonSerializer.SerializeToElement(normalizedValue);
+            envelope.Profiles[normalizedProfileId] = JsonSerializer.SerializeToElement(normalizedValue, LocalStore.JsonOptions);
             await PersistEnvelopeAsync(envelope);
 
             return normalizedValue;
