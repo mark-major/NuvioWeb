@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns="http://tizen.org/ns/packages/2017/api7/app"
-          version="1.0.0"
-          package="NuvioTV001"
+          version="0.3.35"
+          package="NuvioTVN01"
           install-location="auto">
   <author>Nuvio</author>
-  <description>Nuvio TV native shell</description>
+  <description>Nuvio TV native (Tizen .NET NUI) build</description>
   <profile api-version="7.0"/>
+  <!-- Privileges map 1:1 from scripts/package-tizen.mjs config.xml generator.
+       tv.inputdevice is WGT-only key registration; NUI receives keys via
+       Window.KeyEvent without it, but keeping the privilege preserves parity
+       for future input-device queries. -->
   <privileges>
     <privilege>http://tizen.org/privilege/internet</privilege>
-    <privilege>http://tizen.org/privilege/network.public</privilege>
+    <privilege>http://developer.samsung.com/privilege/network.public</privilege>
     <privilege>http://tizen.org/privilege/tv.inputdevice</privilege>
   </privileges>
   <feature name="http://tizen.org/feature/screen.size.all">true</feature>
-  <ui-application appid="NuvioTV001.NuvioTVNative"
+  <ui-application appid="NuvioTVN01.NuvioTV"
                   exec="NuvioTV.Tizen.dll"
                   type="dotnet"
                   multiple="false"
                   taskmanage="true"
                   launch-mode="single"
                   nodisplay="false">
-    <label>Nuvio TV Native</label>
+    <label>Nuvio TV (Native)</label>
     <icon>icon.png</icon>
     <metadata key="http://tizen.org/metadata/preferred_dotnet_runtime" value="coreclr"/>
   </ui-application>
