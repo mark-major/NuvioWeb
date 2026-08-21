@@ -19,8 +19,8 @@ namespace NuvioTV.Core.Tests
         {
             var candidates = new[]
             {
-                Path.Combine("native", "src", "NuvioTV.Tizen", "Resources", "i18n"),
-                Path.Combine("..", "..", "..", "..", "NuvioTV.Tizen", "Resources", "i18n"),
+                Path.Combine("native", "src", "NuvioTV.Tizen", "res", "i18n"),
+                Path.Combine("..", "..", "..", "..", "NuvioTV.Tizen", "res", "i18n"),
             };
             foreach (var candidate in candidates)
             {
