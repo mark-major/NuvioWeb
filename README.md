@@ -146,6 +146,9 @@ to script, style, layout, and paint work.
 
 ```bash
 # 1. One-time interactive login (QR code or developer email); session persists.
+
+> **Native Tizen build:** a native Tizen .NET (NUI) `.tpk` lives under `native/` — see [native/README.md](native/README.md) and [native/PARITY.md](native/PARITY.md). The web app remains the source of truth.
+
 npm run build
 PORT=4317 npm run serve &      # harness server on a dedicated port
 npm run perf -- login --url http://127.0.0.1:4317
