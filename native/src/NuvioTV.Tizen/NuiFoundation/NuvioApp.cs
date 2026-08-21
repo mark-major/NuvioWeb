@@ -166,6 +166,7 @@ namespace NuvioTV.Tizen.NuiFoundation
                 await AppServices.Auth.BootstrapAsync();
 
                 SubscribeAuthStateRouting();
+                _ = BootSequence.CheckAppUpdateAsync(AppConfig.AppVersion);
 
                 // First route: placeholder Home until screens land (Phase 11+).
                 await _router.NavigateAsync(Route.Home, new RouteParams(),
@@ -207,10 +208,12 @@ namespace NuvioTV.Tizen.NuiFoundation
                         _bootGuard.Stage("auth");
                         break;
                     case Core.Auth.AuthState.SignedOut:
-                        _bootGuard.Stage("profile"); // placeholder until router exists
+                        _bootGuard.Stage("profile");
+                        _ = BootSequence.RouteAuthStateAsync(Core.Auth.AuthState.SignedOut, _router);
                         break;
                     case Core.Auth.AuthState.Authenticated:
                         _bootGuard.Stage("profile");
+                        _ = BootSequence.RouteAuthStateAsync(Core.Auth.AuthState.Authenticated, _router);
                         break;
                 }
             });
