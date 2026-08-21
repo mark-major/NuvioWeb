@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" Version="1.6.0" />
     <PackageReference Include="Tizen.NET.API7" Version="7.0.0.15162" />
   </ItemGroup>
 
