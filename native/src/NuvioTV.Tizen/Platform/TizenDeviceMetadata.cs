@@ -6,7 +6,7 @@ namespace NuvioTV.Tizen.Platform
     /// <summary>
     /// Tizen-native device metadata for backend device-session registration.
     /// Plan Task 3.3: platform is "tizen-native"; model/firmware come from
-    /// Tizen.System.Information. All reads are best-effort with safe fallbacks.
+    /// global::Tizen.System.Information. All reads are best-effort with safe fallbacks.
     /// </summary>
     public sealed class TizenDeviceMetadata : IDeviceMetadata
     {
@@ -23,7 +23,9 @@ namespace NuvioTV.Tizen.Platform
             {
                 try
                 {
-                    var model = Tizen.System.Information.Model;
+                    // Tizen.System.Information exposes raw key lookups only.
+                    global::Tizen.System.Information.TryGetValue(
+                        "http://tizen.org/system/model_name", out string model);
                     if (!string.IsNullOrWhiteSpace(model))
                     {
                         return model.Trim();
@@ -44,13 +46,19 @@ namespace NuvioTV.Tizen.Platform
             {
                 try
                 {
-                    var version = Tizen.System.Information.PlatformVersion;
-                    return string.IsNullOrWhiteSpace(version) ? "" : version.Trim();
+                    if (global::Tizen.System.Information.TryGetValue(
+                            "http://tizen.org/feature/platform.version", out string version) &&
+                        !string.IsNullOrWhiteSpace(version))
+                    {
+                        return version.Trim();
+                    }
                 }
                 catch
                 {
-                    return "";
+                    // Version access is optional on emulators and older TVs.
                 }
+
+                return "";
             }
         }
     }
