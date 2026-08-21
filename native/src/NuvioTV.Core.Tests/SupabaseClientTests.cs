@@ -364,7 +364,7 @@ namespace NuvioTV.Core.Tests
     public sealed class RecordingHandler : HttpMessageHandler
     {
         private readonly Queue<HttpResponseMessage> _responses = new Queue<HttpResponseMessage>();
-        private Exception _pendingFailure;
+        private readonly Queue<Exception> _pendingFailures = new Queue<Exception>();
 
         public List<HttpRequestMessage> Requests { get; } = new List<HttpRequestMessage>();
 
@@ -373,23 +373,25 @@ namespace NuvioTV.Core.Tests
             _responses.Enqueue(response);
         }
 
+        /// <summary>Queues a failure thrown on the next SendAsync call(s), in order.</summary>
         public void FailNextWith(Exception failure)
         {
-            _pendingFailure = failure;
+            _pendingFailures.Enqueue(failure);
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Requests.Add(request);
-            if (_pendingFailure != null)
+            lock (this)
             {
-                var failure = _pendingFailure;
-                _pendingFailure = null;
-                throw failure;
-            }
+                Requests.Add(request);
+                if (_pendingFailures.Count > 0)
+                {
+                    throw _pendingFailures.Dequeue();
+                }
 
-            Assert.True(_responses.Count > 0, "RecordingHandler ran out of queued responses");
-            return Task.FromResult(_responses.Dequeue());
+                Assert.True(_responses.Count > 0, "RecordingHandler ran out of queued responses");
+                return Task.FromResult(_responses.Dequeue());
+            }
         }
     }
 }
