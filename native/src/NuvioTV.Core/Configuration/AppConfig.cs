@@ -36,76 +36,76 @@ namespace NuvioTV.Core.Configuration
 
         private class AppConfigData
         {
-            [JsonPropertyName("SupabaseUrl")]
+            [JsonPropertyName("supabaseUrl")]
             public string SupabaseUrl { get; set; }
 
-            [JsonPropertyName("SupabaseAnonKey")]
+            [JsonPropertyName("supabaseAnonKey")]
             public string SupabaseAnonKey { get; set; }
 
-            [JsonPropertyName("SupabaseFallbackUrl")]
+            [JsonPropertyName("supabaseFallbackUrl")]
             public string SupabaseFallbackUrl { get; set; }
 
-            [JsonPropertyName("TvLoginWebBaseUrl")]
+            [JsonPropertyName("tvLoginWebBaseUrl")]
             public string TvLoginWebBaseUrl { get; set; }
 
-            [JsonPropertyName("YoutubeProxyUrl")]
+            [JsonPropertyName("youtubeProxyUrl")]
             public string YoutubeProxyUrl { get; set; }
 
-            [JsonPropertyName("ParentalGuideApiUrl")]
+            [JsonPropertyName("parentalGuideApiUrl")]
             public string ParentalGuideApiUrl { get; set; }
 
-            [JsonPropertyName("IntroDbApiUrl")]
+            [JsonPropertyName("introDbApiUrl")]
             public string IntroDbApiUrl { get; set; }
 
-            [JsonPropertyName("ImdbRatingsApiBaseUrl")]
+            [JsonPropertyName("imdbRatingsApiBaseUrl")]
             public string ImdbRatingsApiBaseUrl { get; set; }
 
-            [JsonPropertyName("ImdbTapframeApiBaseUrl")]
+            [JsonPropertyName("imdbTapframeApiBaseUrl")]
             public string ImdbTapframeApiBaseUrl { get; set; }
 
-            [JsonPropertyName("MdbListApiBaseUrl")]
+            [JsonPropertyName("mdbListApiBaseUrl")]
             public string MdbListApiBaseUrl { get; set; }
 
-            [JsonPropertyName("AvatarPublicBaseUrl")]
+            [JsonPropertyName("avatarPublicBaseUrl")]
             public string AvatarPublicBaseUrl { get; set; }
 
-            [JsonPropertyName("UniqueContributionsBaseUrl")]
+            [JsonPropertyName("uniqueContributionsBaseUrl")]
             public string UniqueContributionsBaseUrl { get; set; }
 
-            [JsonPropertyName("DonationsBaseUrl")]
+            [JsonPropertyName("donationsBaseUrl")]
             public string DonationsBaseUrl { get; set; }
 
-            [JsonPropertyName("DonationsDonateUrl")]
+            [JsonPropertyName("donationsDonateUrl")]
             public string DonationsDonateUrl { get; set; }
 
-            [JsonPropertyName("SponsorNames")]
+            [JsonPropertyName("sponsorNames")]
             public string SponsorNames { get; set; }
 
-            [JsonPropertyName("TmdbApiKey")]
+            [JsonPropertyName("tmdbApiKey")]
             public string TmdbApiKey { get; set; }
 
-            [JsonPropertyName("TraktClientId")]
+            [JsonPropertyName("traktClientId")]
             public string TraktClientId { get; set; }
 
-            [JsonPropertyName("TraktClientSecret")]
+            [JsonPropertyName("traktClientSecret")]
             public string TraktClientSecret { get; set; }
 
-            [JsonPropertyName("TraktApiUrl")]
+            [JsonPropertyName("traktApiUrl")]
             public string TraktApiUrl { get; set; }
 
-            [JsonPropertyName("TraktRedirectUri")]
+            [JsonPropertyName("traktRedirectUri")]
             public string TraktRedirectUri { get; set; }
 
-            [JsonPropertyName("SimklClientId")]
+            [JsonPropertyName("simklClientId")]
             public string SimklClientId { get; set; }
 
-            [JsonPropertyName("SimklApiUrl")]
+            [JsonPropertyName("simklApiUrl")]
             public string SimklApiUrl { get; set; }
 
-            [JsonPropertyName("SimklAppName")]
+            [JsonPropertyName("simklAppName")]
             public string SimklAppName { get; set; }
 
-            [JsonPropertyName("PremiumizeClientId")]
+            [JsonPropertyName("premiumizeClientId")]
             public string PremiumizeClientId { get; set; }
         }
 
@@ -147,9 +147,39 @@ namespace NuvioTV.Core.Configuration
             }
 
             // Load AppVersion from assembly informational version
-            var assembly = Assembly.GetExecutingAssembly();
+            // Task 19.1 wires read-version.mjs → AssemblyInformationalVersion in Tizen project
+            var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
             var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             AppVersion = informationalVersion?.InformationalVersion ?? "";
+        }
+
+        internal static void ResetForTests()
+        {
+            SupabaseUrl = "";
+            SupabaseAnonKey = "";
+            SupabaseFallbackUrl = "";
+            TvLoginWebBaseUrl = "";
+            YoutubeProxyUrl = "youtube-proxy.html";
+            ParentalGuideApiUrl = "https://api.tiffara.com/";
+            IntroDbApiUrl = "https://api.introdb.app/";
+            ImdbRatingsApiBaseUrl = "";
+            ImdbTapframeApiBaseUrl = "";
+            MdbListApiBaseUrl = "https://api.mdblist.com/";
+            AvatarPublicBaseUrl = "";
+            UniqueContributionsBaseUrl = "";
+            DonationsBaseUrl = "";
+            DonationsDonateUrl = "";
+            SponsorNames = "ragmehos.";
+            TmdbApiKey = "";
+            TraktClientId = "";
+            TraktClientSecret = "";
+            TraktApiUrl = "https://api.trakt.tv/";
+            TraktRedirectUri = "urn:ietf:wg:oauth:2.0:oob";
+            SimklClientId = "";
+            SimklApiUrl = "https://api.simkl.com";
+            SimklAppName = "nuvio";
+            PremiumizeClientId = "";
+            AppVersion = "";
         }
     }
 }

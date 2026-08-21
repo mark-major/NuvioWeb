@@ -11,36 +11,37 @@ namespace NuvioTV.Core.Tests
     {
         private const string FixtureJson = @"
 {
-  ""SupabaseUrl"": ""https://test.supabase.co"",
-  ""SupabaseAnonKey"": ""test-anon-key"",
-  ""SupabaseFallbackUrl"": ""https://fallback.supabase.co"",
-  ""TvLoginWebBaseUrl"": ""https://login.test.com"",
-  ""YoutubeProxyUrl"": ""test-proxy.html"",
-  ""ParentalGuideApiUrl"": ""https://parental.test.com/"",
-  ""IntroDbApiUrl"": ""https://intro.test.com/"",
-  ""ImdbRatingsApiBaseUrl"": ""https://imdb-ratings.test.com"",
-  ""ImdbTapframeApiBaseUrl"": ""https://imdb-tapframe.test.com"",
-  ""MdbListApiBaseUrl"": ""https://mdblist.test.com/"",
-  ""AvatarPublicBaseUrl"": ""https://avatar.test.com"",
-  ""UniqueContributionsBaseUrl"": ""https://contributions.test.com"",
-  ""DonationsBaseUrl"": ""https://donations.test.com"",
-  ""DonationsDonateUrl"": ""https://donations.test.com/donate"",
-  ""SponsorNames"": ""test.sponsor"",
-  ""TmdbApiKey"": ""test-tmdb-key"",
-  ""TraktClientId"": ""test-trakt-id"",
-  ""TraktClientSecret"": ""test-trakt-secret"",
-  ""TraktApiUrl"": ""https://trakt.test.com/"",
-  ""TraktRedirectUri"": ""urn:ietf:wg:oauth:2.0:test"",
-  ""SimklClientId"": ""test-simkl-id"",
-  ""SimklApiUrl"": ""https://simkl.test.com"",
-  ""SimklAppName"": ""testapp"",
-  ""PremiumizeClientId"": ""test-premiumize-id""
+  ""supabaseUrl"": ""https://test.supabase.co"",
+  ""supabaseAnonKey"": ""test-anon-key"",
+  ""supabaseFallbackUrl"": ""https://fallback.supabase.co"",
+  ""tvLoginWebBaseUrl"": ""https://login.test.com"",
+  ""youtubeProxyUrl"": ""test-proxy.html"",
+  ""parentalGuideApiUrl"": ""https://parental.test.com/"",
+  ""introDbApiUrl"": ""https://intro.test.com/"",
+  ""imdbRatingsApiBaseUrl"": ""https://imdb-ratings.test.com"",
+  ""imdbTapframeApiBaseUrl"": ""https://imdb-tapframe.test.com"",
+  ""mdbListApiBaseUrl"": ""https://mdblist.test.com/"",
+  ""avatarPublicBaseUrl"": ""https://avatar.test.com"",
+  ""uniqueContributionsBaseUrl"": ""https://contributions.test.com"",
+  ""donationsBaseUrl"": ""https://donations.test.com"",
+  ""donationsDonateUrl"": ""https://donations.test.com/donate"",
+  ""sponsorNames"": ""test.sponsor"",
+  ""tmdbApiKey"": ""test-tmdb-key"",
+  ""traktClientId"": ""test-trakt-id"",
+  ""traktClientSecret"": ""test-trakt-secret"",
+  ""traktApiUrl"": ""https://trakt.test.com/"",
+  ""traktRedirectUri"": ""urn:ietf:wg:oauth:2.0:test"",
+  ""simklClientId"": ""test-simkl-id"",
+  ""simklApiUrl"": ""https://simkl.test.com"",
+  ""simklAppName"": ""testapp"",
+  ""premiumizeClientId"": ""test-premiumize-id""
 }";
 
         [Fact]
         public void Load_LoadsAllPropertiesFromJson()
         {
             // Arrange
+            AppConfig.ResetForTests();
             var jsonBytes = System.Text.Encoding.UTF8.GetBytes(FixtureJson);
             
             // Act
@@ -80,11 +81,10 @@ namespace NuvioTV.Core.Tests
         public void Load_MissingKeysFallBackToDefaults()
         {
             // Arrange - minimal JSON with only some keys
+            AppConfig.ResetForTests();
             const string minimalJson = @"{
-  ""SupabaseUrl"": ""https://minimal.supabase.co""
+  ""supabaseUrl"": ""https://minimal.supabase.co""
 }";
-            var jsonBytes = System.Text.Encoding.UTF8.GetBytes(minimalJson);
-            
             // Act
             using (var stream = new MemoryStream(jsonBytes))
             {
@@ -124,13 +124,12 @@ namespace NuvioTV.Core.Tests
         public void Load_NullValuesHandledCorrectly()
         {
             // Arrange - JSON with explicit null values
+            AppConfig.ResetForTests();
             const string nullJson = @"{
-  ""SupabaseUrl"": ""https://null.supabase.co"",
-  ""SupabaseAnonKey"": null,
-  ""YoutubeProxyUrl"": null
+  ""supabaseUrl"": ""https://null.supabase.co"",
+  ""supabaseAnonKey"": null,
+  ""youtubeProxyUrl"": null
 }";
-            var jsonBytes = System.Text.Encoding.UTF8.GetBytes(nullJson);
-            
             // Act
             using (var stream = new MemoryStream(jsonBytes))
             {
@@ -149,13 +148,12 @@ namespace NuvioTV.Core.Tests
         public void Load_UnknownKeysIgnored()
         {
             // Arrange - JSON with unknown keys
+            AppConfig.ResetForTests();
             const string unknownKeysJson = @"{
-  ""SupabaseUrl"": ""https://unknown.supabase.co"",
-  ""UnknownKey"": ""some-value"",
-  ""AnotherUnknownKey"": 123
+  ""supabaseUrl"": ""https://unknown.supabase.co"",
+  ""unknownKey"": ""some-value"",
+  ""anotherUnknownKey"": 123
 }";
-            var jsonBytes = System.Text.Encoding.UTF8.GetBytes(unknownKeysJson);
-            
             // Act - should not throw
             using (var stream = new MemoryStream(jsonBytes))
             {
@@ -171,10 +169,9 @@ namespace NuvioTV.Core.Tests
         {
             // The test should verify that AppVersion is loaded
             // This will be set when Load is called with any valid JSON
-            const string simpleJson = @"{ ""SupabaseUrl"": ""test"" }";
+            AppConfig.ResetForTests();
+            const string simpleJson = @"{ ""supabaseUrl"": ""test"" }";
             var jsonBytes = System.Text.Encoding.UTF8.GetBytes(simpleJson);
-            
-            using (var stream = new MemoryStream(jsonBytes))
             {
                 AppConfig.Load(stream);
             }
