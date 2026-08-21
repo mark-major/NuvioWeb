@@ -91,6 +91,21 @@ namespace NuvioTV.Core.Auth
                 ct);
         }
 
+        /// <summary>
+        /// JS parity: SupabaseApi.delete (supabaseApi.js:50-56). DELETE /rest/v1/{table}?{filter};
+        /// <paramref name="filter"/> is the raw PostgREST filter string without the leading '?'.
+        /// </summary>
+        public Task DeleteAsync(string table, string filter, bool useSession = true, CancellationToken ct = default)
+        {
+            return SendRestAsync<object>(
+                HttpMethod.Delete,
+                BuildTablePath(table, filter),
+                null,
+                "return=representation",
+                useSession,
+                ct);
+        }
+
         private static string BuildTablePath(string table, string query)
         {
             if (string.IsNullOrWhiteSpace(table))
