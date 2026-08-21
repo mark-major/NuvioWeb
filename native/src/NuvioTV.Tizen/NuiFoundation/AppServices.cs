@@ -28,6 +28,10 @@ namespace NuvioTV.Tizen.NuiFoundation
 
         public static ImageCache Images { get; private set; }
 
+
+        /// <summary>Application router; assigned during NuvioApp boot.</summary>
+        public static Navigation.Router Router { get; set; }
+
         public static void Initialize(string resourceDir, string dataDir)
         {
             ResourceDir = resourceDir;
