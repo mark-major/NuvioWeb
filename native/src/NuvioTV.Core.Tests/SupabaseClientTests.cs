@@ -368,6 +368,9 @@ namespace NuvioTV.Core.Tests
 
         public List<HttpRequestMessage> Requests { get; } = new List<HttpRequestMessage>();
 
+        /// <summary>Bodies snapshotted at send time (HttpClient disposes request content).</summary>
+        public List<string> RequestBodies { get; } = new List<string>();
+
         public void Enqueue(HttpResponseMessage response)
         {
             _responses.Enqueue(response);
@@ -384,6 +387,9 @@ namespace NuvioTV.Core.Tests
             lock (this)
             {
                 Requests.Add(request);
+                RequestBodies.Add(request.Content != null
+                    ? request.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+                    : "");
                 if (_pendingFailures.Count > 0)
                 {
                     throw _pendingFailures.Dequeue();
