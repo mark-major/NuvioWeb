@@ -6,7 +6,7 @@
  * `<resources><string name="key">text</string></resources>`) into one flat
  * JSON message catalog per locale:
  *
- *   native/src/NuvioTV.Tizen/Resources/i18n/{locale}.json
+ *   native/src/NuvioTV.Tizen/res/i18n/{locale}.json
  *
  * Locale is derived from the directory name: `res/values` -> `en`,
  * `res/values-es-419` -> `es-419`, etc. Output JSON is UTF-8, keys sorted,
@@ -39,7 +39,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const RES_DIR = join(REPO_ROOT, "res");
-const OUT_DIR = join(REPO_ROOT, "native/src/NuvioTV.Tizen/Resources/i18n");
+const OUT_DIR = join(REPO_ROOT, "native/src/NuvioTV.Tizen/res/i18n");
 
 /** One <string ...>…</string> element; text may span lines ([\s\S]). */
 const STRING_TAG_RE = /<string\b([^>]*)>([\s\S]*?)<\/string>/g;

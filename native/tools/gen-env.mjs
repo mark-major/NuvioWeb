@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const configPath = path.resolve(__dirname, "../src/NuvioTV.Tizen/Resources/config/nuvio.env.json");
+const configPath = path.resolve(__dirname, "../src/NuvioTV.Tizen/res/config/nuvio.env.json");
 
 async function main() {
   const { env: envProps } = await readEnvProperties({ rootDir: path.resolve(__dirname, "../..") });
