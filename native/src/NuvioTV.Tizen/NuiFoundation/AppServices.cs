@@ -32,6 +32,9 @@ namespace NuvioTV.Tizen.NuiFoundation
         /// <summary>Application router; assigned during NuvioApp boot.</summary>
         public static Navigation.Router Router { get; set; }
 
+        /// <summary>UI-thread marshaler wired by NuvioApp (AddIdle).</summary>
+        public static Action<Action> PostToUi { get; set; }
+
         /// <summary>Lazily created addon repository over the shared file store.</summary>
         private static Core.Addons.AddonRepository _addons;
         public static Core.Addons.AddonRepository Addons

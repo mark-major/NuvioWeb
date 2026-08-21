@@ -59,6 +59,7 @@ namespace NuvioTV.Tizen.NuiFoundation
                 route => new PlaceholderScreen(route.ToString()),
                 () => Exit());
             AppServices.Router = _router;
+            AppServices.PostToUi = action => AddIdle(new Func<bool>(() => { action(); return false; }));
             window.KeyEvent += OnWindowKeyEvent;
         }
 
