@@ -48,6 +48,24 @@ namespace NuvioTV.Tizen.NuiFoundation
             }
         }
 
+        /// <summary>Lazily created saved-library service over shared stores.</summary>
+        private static Core.Sync.SavedLibrarySyncService _savedLibrary;
+        public static Core.Sync.SavedLibrarySyncService SavedLibrary
+        {
+            get
+            {
+                if (_savedLibrary == null)
+                {
+                    _savedLibrary = new Core.Sync.SavedLibrarySyncService(
+                        new Core.Auth.SupabaseClient(Http, Auth),
+                        Auth,
+                        new Core.Sync.ProfileManager(FileStore),
+                        FileStore);
+                }
+                return _savedLibrary;
+            }
+        }
+
         public static void Initialize(string resourceDir, string dataDir)
         {
             ResourceDir = resourceDir;
