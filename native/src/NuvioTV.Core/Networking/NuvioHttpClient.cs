@@ -44,20 +44,18 @@ namespace NuvioTV.Core.Networking
             _tokenProvider = tokens ?? throw new ArgumentNullException(nameof(tokens));
         }
 
-        public async Task<T> GetJsonAsync<T>(string url, CancellationToken ct = default)
+        public async Task<T> GetJsonAsync<T>(string url, bool includeSessionAuth = true, CancellationToken ct = default)
         {
-            return await SendJsonAsync<T>(HttpMethod.Get, url, null, ct);
+            return await SendJsonAsync<T>(HttpMethod.Get, url, null, includeSessionAuth, ct);
         }
 
-        public async Task<T> PostJsonAsync<T>(string url, object body, CancellationToken ct = default)
+        public async Task<T> PostJsonAsync<T>(string url, object body, bool includeSessionAuth = true, CancellationToken ct = default)
         {
-            return await SendJsonAsync<T>(HttpMethod.Post, url, body, ct);
+            return await SendJsonAsync<T>(HttpMethod.Post, url, body, includeSessionAuth, ct);
         }
 
-        private async Task<T> SendJsonAsync<T>(HttpMethod method, string url, object body, CancellationToken ct)
+        private async Task<T> SendJsonAsync<T>(HttpMethod method, string url, object body, bool includeSessionAuth, CancellationToken ct)
         {
-            var includeSessionAuth = _tokenProvider.HasTokens();
-
             // Pre-refresh expiring JWT
             if (includeSessionAuth)
             {
@@ -133,44 +131,44 @@ namespace NuvioTV.Core.Networking
                 var content = await response.Content.ReadAsStringAsync();
                 if (!string.IsNullOrWhiteSpace(content))
                 {
-                    using (var jsonDoc = JsonDocument.Parse(content))
+                    try
                     {
-                        if (jsonDoc.RootElement.TryGetProperty("code", out var codeProp))
+                        var errorDoc = JsonDocument.Parse(content);
+                        if (errorDoc.RootElement.TryGetProperty("code", out var codeElem))
                         {
-                            code = codeProp.GetString();
+                            code = codeElem.GetString();
                         }
-                        if (jsonDoc.RootElement.TryGetProperty("message", out var messageProp))
+                        if (errorDoc.RootElement.TryGetProperty("detail", out var detailElem))
                         {
-                            detail = messageProp.GetString();
+                            detail = detailElem.GetString();
                         }
+                    }
+                    catch (JsonException)
+                    {
+                        // If JSON parsing fails, use raw content as detail
+                        detail = content.Length > 200 ? content.Substring(0, 200) + "..." : content;
                     }
                 }
             }
             catch
             {
-                // Keep default values on parse error
+                // If content reading fails, use status message
+                detail = response.ReasonPhrase;
             }
 
-            throw new NuvioHttpException(status, code, detail ?? $"HTTP {status}");
+            throw new NuvioHttpException(status, code, detail);
         }
 
         private bool IsTokenExpiringSoon(string token)
         {
-            try
-            {
-                var expSeconds = JwtDecoder.GetExpirationSeconds(token);
-                if (!expSeconds.HasValue)
-                {
-                    return false;
-                }
-
-                var nowSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                return expSeconds.Value - nowSeconds <= JwtExpirationLeewaySeconds;
-            }
-            catch
+            var expSeconds = JwtDecoder.GetExpirationSeconds(token);
+            if (!expSeconds.HasValue)
             {
                 return false;
             }
+
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return (expSeconds.Value - now) <= JwtExpirationLeewaySeconds;
         }
     }
 
@@ -184,21 +182,28 @@ namespace NuvioTV.Core.Networking
             }
 
             var parts = token.Split('.');
-            if (parts.Length < 2)
+            if (parts.Length != 3)
             {
                 return null;
             }
 
             try
             {
-                var payloadBase64 = parts[1];
-                var payloadJson = Base64UrlDecode(payloadBase64);
-                using (var jsonDoc = JsonDocument.Parse(payloadJson))
+                var payload = parts[1];
+                // Add padding if needed
+                switch (payload.Length % 4)
                 {
-                    if (jsonDoc.RootElement.TryGetProperty("exp", out var expProp))
-                    {
-                        return expProp.GetInt64();
-                    }
+                    case 2: payload += "=="; break;
+                    case 3: payload += "="; break;
+                }
+
+                var bytes = Convert.FromBase64String(payload);
+                var json = Encoding.UTF8.GetString(bytes);
+                var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("exp", out var expElem))
+                {
+                    return expElem.GetInt64();
                 }
             }
             catch
@@ -207,18 +212,6 @@ namespace NuvioTV.Core.Networking
             }
 
             return null;
-        }
-
-        private static string Base64UrlDecode(string base64Url)
-        {
-            var s = base64Url.Replace('-', '+').Replace('_', '/');
-            switch (s.Length % 4)
-            {
-                case 2: s += "=="; break;
-                case 3: s += "="; break;
-            }
-            var bytes = Convert.FromBase64String(s);
-            return Encoding.UTF8.GetString(bytes);
         }
     }
 }

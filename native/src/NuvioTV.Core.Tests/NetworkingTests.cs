@@ -15,45 +15,47 @@ namespace NuvioTV.Core.Tests
 {
     public class NetworkingTests
     {
-        // Test (a): 401→refresh→success performs exactly 2 calls
+        // Test (a): 401→refresh→success performs exactly 2 calls and Bearer token rotation
         [Fact]
-        public async Task GetJsonAsync_401ThenRefreshThenSuccess_PerformsExactly2Calls()
+        public async Task GetJsonAsync_401ThenRefreshThenSuccess_PerformsExactly2CallsWithNewToken()
         {
             // Arrange
             var callCount = 0;
-            var handler = new CountingHandler(() =>
+            var authorizationHeaders = new List<string>();
+            var handler = new StubHandler(request =>
             {
+                var auth = request.Headers.Authorization?.ToString();
+                authorizationHeaders.Add(auth ?? "null");
                 callCount++;
+
                 if (callCount == 1)
                 {
-                    // First call: 401 Unauthorized
-                    return new HttpResponseMessage(HttpStatusCode.Unauthorized)
-                    {
-                        Content = new StringContent("Unauthorized", Encoding.UTF8, "application/json")
-                    };
+                    return new HttpResponseMessage(HttpStatusCode.Unauthorized);
                 }
-                else
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    // Second call: 200 OK
-                    return new HttpResponseMessage(HttpStatusCode.OK)
-                    {
-                        Content = new StringContent("{\"data\":\"success\"}", Encoding.UTF8, "application/json")
-                    };
-                }
+                    Content = new StringContent("{\"data\":\"success\"}", Encoding.UTF8, "application/json")
+                };
             });
 
-            var tokenProvider = new StubSessionTokenProvider("valid-token", "refresh-token");
             var httpClient = new HttpClient(handler);
-            var nuvioClient = new NuvioHttpClient(httpClient, tokenProvider);
+            var tokenProvider = new StubSessionTokenProvider("initial-token", "valid-refresh");
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
 
             // Act
-            var result = await nuvioClient.GetJsonAsync<TestResponse>("http://test.com/api");
+            var result = await client.GetJsonAsync<TestResponse>("http://test/api");
 
             // Assert
-            Assert.Equal(2, callCount); // Exactly 2 calls should be made
+            Assert.Equal(2, callCount);
+            Assert.True(tokenProvider.ForceRefreshCalled);
             Assert.NotNull(result);
             Assert.Equal("success", result.Data);
-            Assert.True(tokenProvider.ForceRefreshCalled);
+            
+            // Assert Bearer headers: first call with initial token, second with refreshed token
+            Assert.Equal(2, authorizationHeaders.Count);
+            Assert.Equal("Bearer initial-token", authorizationHeaders[0]);
+            Assert.Equal("Bearer refreshed-token", authorizationHeaders[1]);
         }
 
         // Test (b): expiring-token pre-refresh within 30s leeway
@@ -61,30 +63,37 @@ namespace NuvioTV.Core.Tests
         public async Task GetJsonAsync_ExpiringToken_PreRefreshesWithinLeeway()
         {
             // Arrange
-            var callCount = 0;
-            var handler = new CountingHandler(() =>
+            var authorizationHeaders = new List<string>();
+            var handler = new StubHandler(request =>
             {
-                callCount++;
+                var auth = request.Headers.Authorization?.ToString();
+                authorizationHeaders.Add(auth ?? "null");
+                
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{\"data\":\"success\"}", Encoding.UTF8, "application/json")
                 };
             });
 
-            // Create a token that expires in 20 seconds (within 30s leeway)
-            var expiringToken = JwtGenerator.GenerateToken(expiresInSeconds: 20);
-            var tokenProvider = new StubSessionTokenProvider(expiringToken, "refresh-token");
             var httpClient = new HttpClient(handler);
-            var nuvioClient = new NuvioHttpClient(httpClient, tokenProvider);
+            // Token expiring in 20 seconds (within 30s leeway)
+            var tokenProvider = new StubSessionTokenProvider(
+                JwtGenerator.GenerateToken(expiresInSeconds: 20),
+                "valid-refresh"
+            );
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
 
             // Act
-            var result = await nuvioClient.GetJsonAsync<TestResponse>("http://test.com/api");
+            var result = await client.GetJsonAsync<TestResponse>("http://test/api");
 
             // Assert
-            Assert.Equal(1, callCount); // Only one call needed since we pre-refreshed
+            Assert.True(tokenProvider.TryRefreshCalled);
             Assert.NotNull(result);
             Assert.Equal("success", result.Data);
-            Assert.True(tokenProvider.TryRefreshCalled); // Should have pre-refreshed
+            
+            // Should have used refreshed token
+            Assert.Single(authorizationHeaders);
+            Assert.Equal("Bearer refreshed-token", authorizationHeaders[0]);
         }
 
         // Test (c): 204 → null
@@ -92,20 +101,17 @@ namespace NuvioTV.Core.Tests
         public async Task GetJsonAsync_204NoContent_ReturnsNull()
         {
             // Arrange
-            var handler = new StubHandler(() =>
+            var handler = new StubHandler(request =>
             {
-                return new HttpResponseMessage(HttpStatusCode.NoContent)
-                {
-                    Content = new StringContent("", Encoding.UTF8)
-                };
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
             });
 
-            var tokenProvider = new StubSessionTokenProvider("valid-token", "refresh-token");
             var httpClient = new HttpClient(handler);
-            var nuvioClient = new NuvioHttpClient(httpClient, tokenProvider);
+            var tokenProvider = new StubSessionTokenProvider("valid-token", "valid-refresh");
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
 
             // Act
-            var result = await nuvioClient.GetJsonAsync<TestResponse>("http://test.com/api");
+            var result = await client.GetJsonAsync<TestResponse>("http://test/api");
 
             // Assert
             Assert.Null(result);
@@ -116,23 +122,18 @@ namespace NuvioTV.Core.Tests
         public async Task MapWithConcurrency_Concurrency4_CapsInFlight()
         {
             // Arrange
-            var maxInFlight = 0;
-            var currentInFlight = 0;
-            var lockObj = new object();
-
+            var delayMs = 50;
+            
             Func<int, CancellationToken, Task<int>> mapper = async (item, ct) =>
             {
-                var before = Interlocked.Increment(ref currentInFlight);
-                var max = before;
-                Thread.Sleep(50); // Simulate work
-                Interlocked.Decrement(ref currentInFlight);
+                await Task.Delay(delayMs, ct);
                 return item * 2;
             };
 
             var items = Enumerable.Range(1, 20).ToList();
 
             // Act
-            var results = await MapWithConcurrency.RunAsync(4, items, mapper, CancellationToken.None);
+            var (results, maxInFlight) = await MapWithConcurrency.RunAsyncTracked(4, items, mapper, CancellationToken.None);
 
             // Assert
             Assert.Equal(20, results.Count);
@@ -140,9 +141,10 @@ namespace NuvioTV.Core.Tests
             {
                 Assert.Equal(results[i], items[i] * 2);
             }
-            // Max concurrency should be 4
-            // We can't easily assert on maxInFlight without more synchronization,
-            // but the fact that the test completes successfully validates the mechanism
+            
+            // Max concurrency should be capped at 4 but should have achieved parallelism
+            Assert.True(maxInFlight <= 4, $"Max in-flight {maxInFlight} should not exceed concurrency cap of 4");
+            Assert.True(maxInFlight >= 2, $"Max in-flight {maxInFlight} should demonstrate parallelism (at least 2)");
         }
 
         // Test (e): error surfaces NuvioHttpException.Status
@@ -150,27 +152,26 @@ namespace NuvioTV.Core.Tests
         public async Task GetJsonAsync_HttpError_ThrowsNuvioHttpExceptionWithStatus()
         {
             // Arrange
-            var handler = new StubHandler(() =>
+            var handler = new StubHandler(request =>
             {
-                var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+                return new HttpResponseMessage(HttpStatusCode.NotFound)
                 {
-                    Content = new StringContent("{\"code\":\"INVALID_INPUT\",\"message\":\"Invalid request\"}", 
-                        Encoding.UTF8, "application/json")
+                    Content = new StringContent("{\"code\":\"NOT_FOUND\",\"detail\":\"Resource not found\"}", Encoding.UTF8, "application/json")
                 };
-                return response;
             });
 
-            var tokenProvider = new StubSessionTokenProvider("valid-token", "refresh-token");
             var httpClient = new HttpClient(handler);
-            var nuvioClient = new NuvioHttpClient(httpClient, tokenProvider);
+            var tokenProvider = new StubSessionTokenProvider("valid-token", "valid-refresh");
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<NuvioHttpException>(() =>
-                nuvioClient.GetJsonAsync<TestResponse>("http://test.com/api"));
+                client.GetJsonAsync<TestResponse>("http://test/api")
+            );
 
-            Assert.Equal(400, exception.Status);
-            Assert.Equal("INVALID_INPUT", exception.Code);
-            Assert.Equal("Invalid request", exception.Detail);
+            Assert.Equal(404, exception.Status);
+            Assert.Equal("NOT_FOUND", exception.Code);
+            Assert.Equal("Resource not found", exception.Detail);
         }
 
         // Additional test: JWT payload decoding (exp claim extraction)
@@ -189,6 +190,97 @@ namespace NuvioTV.Core.Tests
             Assert.True(exp.Value > now); // Should be in the future
             Assert.True(exp.Value < now + 400); // Should be within expected range
         }
+
+        // Test (f): includeSessionAuth=false omits Bearer header
+        [Fact]
+        public async Task GetJsonAsync_IncludeSessionAuthFalse_OmitsBearerHeader()
+        {
+            // Arrange
+            var authorizationHeaders = new List<string>();
+            var handler = new StubHandler(request =>
+            {
+                var auth = request.Headers.Authorization?.ToString();
+                authorizationHeaders.Add(auth ?? "null");
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"data\":\"success\"}", Encoding.UTF8, "application/json")
+                };
+            });
+            
+            var httpClient = new HttpClient(handler);
+            var tokenProvider = new StubSessionTokenProvider("valid-token", "valid-refresh");
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
+
+            // Act
+            var result = await client.GetJsonAsync<TestResponse>("http://test/api", includeSessionAuth: false);
+
+            // Assert
+            Assert.Single(authorizationHeaders);
+            Assert.Equal("null", authorizationHeaders[0]);
+            Assert.NotNull(result);
+            Assert.Equal("success", result.Data);
+            Assert.False(tokenProvider.TryRefreshCalled); // Should not attempt refresh when auth disabled
+        }
+
+        // Test (g): PostJsonAsync with includeSessionAuth=false
+        [Fact]
+        public async Task PostJsonAsync_IncludeSessionAuthFalse_OmitsBearerHeader()
+        {
+            // Arrange
+            var authorizationHeaders = new List<string>();
+            var handler = new StubHandler(request =>
+            {
+                var auth = request.Headers.Authorization?.ToString();
+                authorizationHeaders.Add(auth ?? "null");
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"data\":\"posted\"}", Encoding.UTF8, "application/json")
+                };
+            });
+            
+            var httpClient = new HttpClient(handler);
+            var tokenProvider = new StubSessionTokenProvider("valid-token", "valid-refresh");
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
+
+            // Act
+            var result = await client.PostJsonAsync<TestResponse>("http://test/api", new { data = "test" }, includeSessionAuth: false);
+
+            // Assert
+            Assert.Single(authorizationHeaders);
+            Assert.Equal("null", authorizationHeaders[0]);
+            Assert.NotNull(result);
+            Assert.Equal("posted", result.Data);
+        }
+
+        // Test (h): Default includeSessionAuth=true includes Bearer header
+        [Fact]
+        public async Task GetJsonAsync_Default_IncludeSessionAuthTrue_IncludesBearerHeader()
+        {
+            // Arrange
+            var authorizationHeaders = new List<string>();
+            var handler = new StubHandler(request =>
+            {
+                var auth = request.Headers.Authorization?.ToString();
+                authorizationHeaders.Add(auth ?? "null");
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"data\":\"success\"}", Encoding.UTF8, "application/json")
+                };
+            });
+            
+            var httpClient = new HttpClient(handler);
+            var tokenProvider = new StubSessionTokenProvider("my-token", "valid-refresh");
+            var client = new NuvioHttpClient(httpClient, tokenProvider);
+
+            // Act (using default includeSessionAuth)
+            var result = await client.GetJsonAsync<TestResponse>("http://test/api");
+
+            // Assert
+            Assert.Single(authorizationHeaders);
+            Assert.Equal("Bearer my-token", authorizationHeaders[0]);
+            Assert.NotNull(result);
+            Assert.Equal("success", result.Data);
+        }
     }
 
     // Test helpers and stubs
@@ -201,9 +293,9 @@ namespace NuvioTV.Core.Tests
 
     public class StubHandler : HttpMessageHandler
     {
-        private readonly Func<HttpResponseMessage> _responseFactory;
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _responseFactory;
 
-        public StubHandler(Func<HttpResponseMessage> responseFactory)
+        public StubHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
         {
             _responseFactory = responseFactory;
         }
@@ -211,15 +303,15 @@ namespace NuvioTV.Core.Tests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, 
             CancellationToken cancellationToken)
         {
-            return Task.FromResult(_responseFactory());
+            return Task.FromResult(_responseFactory(request));
         }
     }
 
     public class CountingHandler : HttpMessageHandler
     {
-        private readonly Func<HttpResponseMessage> _responseFactory;
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _responseFactory;
 
-        public CountingHandler(Func<HttpResponseMessage> responseFactory)
+        public CountingHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
         {
             _responseFactory = responseFactory;
         }
@@ -227,13 +319,13 @@ namespace NuvioTV.Core.Tests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, 
             CancellationToken cancellationToken)
         {
-            return Task.FromResult(_responseFactory());
+            return Task.FromResult(_responseFactory(request));
         }
     }
 
     public class StubSessionTokenProvider : ISessionTokenProvider
     {
-        private readonly string _accessToken;
+        private string _accessToken;
         private readonly string _refreshToken;
 
         public bool ForceRefreshCalled { get; private set; }
@@ -261,6 +353,10 @@ namespace NuvioTV.Core.Tests
             {
                 TryRefreshCalled = true;
             }
+            
+            // Simulate token rotation
+            _accessToken = "refreshed-token";
+            
             return Task.FromResult(true);
         }
     }
@@ -272,29 +368,30 @@ namespace NuvioTV.Core.Tests
         {
             var header = new { alg = "HS256", typ = "JWT" };
             var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var exp = now + expiresInSeconds;
-            var payload = new { exp, sub = "test-user", iat = now };
+            var payload = new 
+            { 
+                exp = now + expiresInSeconds,
+                iat = now
+            };
 
             var headerJson = JsonSerializer.Serialize(header);
             var payloadJson = JsonSerializer.Serialize(payload);
 
             var headerBase64 = Base64UrlEncode(headerJson);
             var payloadBase64 = Base64UrlEncode(payloadJson);
-
-            // For testing, we'll just create a simple signature (not real HMAC)
-            var signature = Base64UrlEncode("test-signature");
-
+            
+            // Note: In real scenario, signature would be computed with secret key
+            // For testing, we just use a placeholder signature
+            var signature = "test-signature";
+            
             return $"{headerBase64}.{payloadBase64}.{signature}";
         }
 
         private static string Base64UrlEncode(string input)
         {
             var bytes = Encoding.UTF8.GetBytes(input);
-            var base64 = Convert.ToBase64String(bytes)
-                .Replace('+', '-')
-                .Replace('/', '_')
-                .TrimEnd('=');
-            return base64;
+            var base64 = Convert.ToBase64String(bytes);
+            return base64.TrimEnd('=').Replace('+', '-').Replace('/', '_');
         }
     }
 }
