@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using NuvioTV.Core.Auth;
 using NuvioTV.Core.Configuration;
 using NuvioTV.Core.Localization;
+using NuvioTV.Core.Settings;
 using Tizen.NUI;
 using Tizen.NUI.BaseComponents;
 
@@ -141,7 +142,9 @@ namespace NuvioTV.Tizen.NuiFoundation
                 I18n.Configure(AppServices.LoadLocaleJsonAsync, () => new[] { AppServices.GetSystemLocale() ?? "en_US" });
                 await I18n.InitAsync(null);
 
-                // Router init / theme apply land with Tasks 9.2 and 8.2.
+                // Theme apply (js/app.js order: after Router init, before device registration).
+                ThemeManager.Apply(await ThemeStore.GetAsync());
+
                 await AppServices.DeviceRegistration.StartAsync();
                 await AppServices.Auth.BootstrapAsync();
 
