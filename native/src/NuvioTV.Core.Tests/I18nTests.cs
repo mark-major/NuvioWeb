@@ -183,6 +183,30 @@ namespace NuvioTV.Core.Tests
             Assert.Equal(30, I18n.SupportedLocales.Count);
         }
 
+        [Fact]
+        public async Task T_NativeOnlyKeys_ResolveNonEmpty_FromEnglish()
+        {
+            // Task 7.2: native-only surface keys (P2P notice, update prompt body,
+            // BootGuard stage labels). Consumed by later UI tasks.
+            var nativeKeys = new[]
+            {
+                "native_p2p_unavailable",
+                "native_update_available_body",
+                "native_boot_stage_shell",
+                "native_boot_stage_config",
+                "native_boot_stage_storage",
+                "native_boot_stage_addons",
+                "native_boot_stage_auth",
+                "native_boot_stage_profile",
+            };
+            await I18n.InitAsync("en");
+            foreach (var key in nativeKeys)
+            {
+                Assert.NotEqual(key, I18n.T(key)); // fell back to the key itself = missing
+                Assert.False(string.IsNullOrWhiteSpace(I18n.T(key)));
+            }
+        }
+
         private static KeyValuePair<string, string>? GetEnEntry(Func<string, bool> predicate)
         {
             foreach (var line in File.ReadAllLines(Path.Combine(LocaleDir, "en.json")))

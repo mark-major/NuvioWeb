@@ -2648,4 +2648,12 @@
     <string name="cloud_library_search_label">Pesquisar biblioteca na nuvem</string>
     <string name="cloud_library_search_placeholder">Pesquisar arquivos</string>
     <string name="cloud_library_search_clear">Limpar pesquisa</string>
+    <string name="native_p2p_unavailable">A reprodução direta de torrents ainda não está disponível nesta compilação nativa. Utilize um fornecedor debrid ou uma emissão direta.</string>
+    <string name="native_update_available_body">Está disponível uma nova versão do Nuvio. Utilize o Nuvio TV Installer para transferir e instalar a atualização no seu dispositivo.</string>
+    <string name="native_boot_stage_shell">A iniciar a interface da aplicação</string>
+    <string name="native_boot_stage_config">A carregar a configuração</string>
+    <string name="native_boot_stage_storage">A inicializar o armazenamento</string>
+    <string name="native_boot_stage_addons">A carregar os addons</string>
+    <string name="native_boot_stage_auth">A verificar a autenticação</string>
+    <string name="native_boot_stage_profile">A carregar os perfis</string>
 </resources>

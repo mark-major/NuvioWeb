@@ -2685,4 +2685,12 @@
     <string name="cloud_library_error_disabled">Bulut kütüphanesi kapalı.</string>
     <string name="cloud_library_search_clear">Aramayı temizle</string>
     <string name="upcoming_section_title">Yaklaşanlar</string>
+    <string name="native_p2p_unavailable">Doğrudan torrent akışı bu yerel sürümde henüz kullanılamıyor. Bir debrid sağlayıcısı veya doğrudan bir akış kullanın.</string>
+    <string name="native_update_available_body">Nuvio\'nun yeni bir sürümü mevcut. Güncellemeyi cihazınıza indirmek ve yüklemek için Nuvio TV Installer\'ı kullanın.</string>
+    <string name="native_boot_stage_shell">Uygulama arayüzü başlatılıyor</string>
+    <string name="native_boot_stage_config">Yapılandırma yükleniyor</string>
+    <string name="native_boot_stage_storage">Depolama başlatılıyor</string>
+    <string name="native_boot_stage_addons">Eklentiler yükleniyor</string>
+    <string name="native_boot_stage_auth">Kimlik doğrulama kontrol ediliyor</string>
+    <string name="native_boot_stage_profile">Profiller yükleniyor</string>
 </resources>

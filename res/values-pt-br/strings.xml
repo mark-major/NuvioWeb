@@ -2712,4 +2712,12 @@
     <string name="cloud_library_search_placeholder">Pesquisar arquivos</string>
     <string name="cloud_library_search_clear">Limpar pesquisa</string>
     <string name="upcoming_section_title">Próximos</string>
+    <string name="native_p2p_unavailable">O streaming direto de torrents ainda não está disponível nesta versão nativa. Use um provedor debrid ou um stream direto.</string>
+    <string name="native_update_available_body">Uma nova versão do Nuvio está disponível. Use o Nuvio TV Installer para baixar e instalar a atualização no seu dispositivo.</string>
+    <string name="native_boot_stage_shell">Iniciando a interface do aplicativo</string>
+    <string name="native_boot_stage_config">Carregando configurações</string>
+    <string name="native_boot_stage_storage">Inicializando armazenamento</string>
+    <string name="native_boot_stage_addons">Carregando addons</string>
+    <string name="native_boot_stage_auth">Verificando autenticação</string>
+    <string name="native_boot_stage_profile">Carregando perfis</string>
 </resources>

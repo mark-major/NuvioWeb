@@ -2790,4 +2790,12 @@
     <string name="licenses_attributions_premiumize_body">Nuvio connects to Premiumize for account authentication, cloud library access, cache checks, and cloud playback features. Nuvio is not affiliated with or endorsed by Premiumize.</string>
     <string name="licenses_attributions_torbox_title">TorBox</string>
     <string name="licenses_attributions_torbox_body">Nuvio connects to TorBox for account authentication, cloud library access, cache checks, and cloud playback features. Nuvio is not affiliated with or endorsed by TorBox.</string>
+    <string name="native_p2p_unavailable">Direct torrent streaming isn\'t available in this native build yet. Use a debrid provider or a direct stream.</string>
+    <string name="native_update_available_body">A new version of Nuvio is available. Use the Nuvio TV Installer to download and install the update on your device.</string>
+    <string name="native_boot_stage_shell">Starting application shell</string>
+    <string name="native_boot_stage_config">Loading configuration</string>
+    <string name="native_boot_stage_storage">Initializing storage</string>
+    <string name="native_boot_stage_addons">Loading addons</string>
+    <string name="native_boot_stage_auth">Checking authentication</string>
+    <string name="native_boot_stage_profile">Loading profiles</string>
 </resources>

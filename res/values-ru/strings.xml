@@ -2387,4 +2387,12 @@
     <string name="cloud_library_search_label">Поиск в облачной библиотеке</string>
     <string name="cloud_library_search_placeholder">Поиск файлов</string>
     <string name="cloud_library_search_clear">Очистить поиск</string>
+    <string name="native_p2p_unavailable">Прямой потоковый просмотр торрентов пока недоступен в этой нативной версии. Используйте debrid-провайдера или прямую ссылку на поток.</string>
+    <string name="native_update_available_body">Доступна новая версия Nuvio. Используйте Nuvio TV Installer, чтобы загрузить и установить обновление на устройстве.</string>
+    <string name="native_boot_stage_shell">Запуск оболочки приложения</string>
+    <string name="native_boot_stage_config">Загрузка конфигурации</string>
+    <string name="native_boot_stage_storage">Инициализация хранилища</string>
+    <string name="native_boot_stage_addons">Загрузка аддонов</string>
+    <string name="native_boot_stage_auth">Проверка аутентификации</string>
+    <string name="native_boot_stage_profile">Загрузка профилей</string>
 </resources>

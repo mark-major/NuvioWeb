@@ -2458,4 +2458,12 @@
     <string name="layout_cw_sort_split_upcoming">Separar fila de próximos</string>
     <string name="layout_cw_sort_split_upcoming_desc">Mueve los episodios que aún no se han emitido a una fila separada de Próximos</string>
     <string name="upcoming_section_title">Próximos</string>
+    <string name="native_p2p_unavailable">La transmisión directa de torrents aún no está disponible en esta versión nativa. Usa un proveedor debrid o una transmisión directa.</string>
+    <string name="native_update_available_body">Hay una nueva versión de Nuvio disponible. Usa el Nuvio TV Installer para descargar e instalar la actualización en tu dispositivo.</string>
+    <string name="native_boot_stage_shell">Iniciando la interfaz de la aplicación</string>
+    <string name="native_boot_stage_config">Cargando configuración</string>
+    <string name="native_boot_stage_storage">Inicializando almacenamiento</string>
+    <string name="native_boot_stage_addons">Cargando addons</string>
+    <string name="native_boot_stage_auth">Verificando autenticación</string>
+    <string name="native_boot_stage_profile">Cargando perfiles</string>
 </resources>
