@@ -3,8 +3,12 @@ using System.IO;
 using System.Threading.Tasks;
 using NuvioTV.Core.Auth;
 using NuvioTV.Core.Configuration;
+using NuvioTV.Core.Input;
 using NuvioTV.Core.Localization;
 using NuvioTV.Core.Settings;
+using NuvioTV.Tizen.Input;
+using NuvioTV.Tizen.Navigation;
+using NuvioTV.Tizen.Screens;
 using Tizen.NUI;
 using Tizen.NUI.BaseComponents;
 
@@ -21,6 +25,11 @@ namespace NuvioTV.Tizen.NuiFoundation
         private BootGuard _bootGuard;
         private SplashView _splash;
         private IDisposable _globalHandlers;
+        private ScreenHost _screenHost;
+        private Router _router;
+        private FocusController _focusController = new FocusController();
+        private HoldTimerService _holdTimer;
+        private long _lastBackAtMs;
 
         protected override void OnCreate()
         {
@@ -43,7 +52,13 @@ namespace NuvioTV.Tizen.NuiFoundation
                 () => "startup",
                 (code, message, details) => _bootGuard.Fail(code, message, details));
 
-            RunBootSequence();
+            // Navigation shell (Task 9.2): single host view + router + key routing.
+            _screenHost = new ScreenHost();
+            window.GetDefaultLayer().Add(_screenHost);
+            _router = new Router(_screenHost,
+                route => new PlaceholderScreen(route.ToString()),
+                () => Exit());
+            window.KeyEvent += OnWindowKeyEvent;
         }
 
         protected override void OnPause()
@@ -150,6 +165,21 @@ namespace NuvioTV.Tizen.NuiFoundation
 
                 SubscribeAuthStateRouting();
 
+                // First route: placeholder Home until screens land (Phase 11+).
+                await _router.NavigateAsync(Route.Home, new RouteParams(),
+                    new NavigateOptions { SkipStackPush = true });
+                _focusController.SetContainer(_screenHost);
+                _focusController.SetInitialFocus();
+
+                _bootGuard.Dismiss();
+                if (_splash != null)
+                {
+                    var parent = _splash.GetParent();
+                    parent?.Remove(_splash);
+                    _splash.Dispose();
+                    _splash = null;
+                }
+
                 global::Tizen.Log.Info("NuvioTV", $"bootstrap complete, auth state: {AppServices.Auth.State}");
             }
             catch (Exception ex)
@@ -182,6 +212,97 @@ namespace NuvioTV.Tizen.NuiFoundation
                         break;
                 }
             });
+        }
+
+        /// <summary>
+        /// Window key routing (Task 9.1 contract): normalize → dpad focus /
+        /// back debounce → screen hooks. Media/letter keys reach screens only.
+        /// </summary>
+        private void OnWindowKeyEvent(object sender, Window.KeyEventArgs e)
+        {
+            var key = KeyMap.Normalize(e.Key);
+            if (key == null) return;
+
+            var isDown = e.Key.State == Key.StateType.Down;
+            if (!isDown && e.Key.State != Key.StateType.Up)
+            {
+                return;
+            }
+
+            if (_holdTimer == null)
+            {
+                _holdTimer = new HoldTimerService(
+                    () => global::Tizen.Log.Info("NuvioTV", "OK long-press"));
+            }
+
+            if (isDown)
+            {
+                if (HandleKeyDown(key.Value))
+                {
+                    return;
+                }
+                if (key.Value == NuvioKey.Ok)
+                {
+                    _holdTimer.OnKeyDown();
+                }
+            }
+            else
+            {
+                if (key.Value == NuvioKey.Ok)
+                {
+                    _holdTimer.OnKeyUp();
+                }
+                HandleKeyUp(key.Value);
+            }
+        }
+
+        private bool HandleKeyDown(NuvioKey key)
+        {
+            // Screen first: it may consume everything including dpad.
+            var screen = _router.CurrentScreen;
+            if (screen != null && screen.OnKeyDown(key))
+            {
+                return true;
+            }
+
+            switch (key)
+            {
+                case NuvioKey.Up:
+                    return _focusController.MoveFocusDirectional(FocusDirection.Up);
+                case NuvioKey.Down:
+                    return _focusController.MoveFocusDirectional(FocusDirection.Down);
+                case NuvioKey.Left:
+                    return _focusController.MoveFocusDirectional(FocusDirection.Left);
+                case NuvioKey.Right:
+                    return _focusController.MoveFocusDirectional(FocusDirection.Right);
+                case NuvioKey.Back:
+                    HandleBackKeyDown();
+                    return true;
+            }
+            return false;
+        }
+
+        private void HandleKeyUp(NuvioKey key)
+        {
+            if (_holdTimer != null && _holdTimer.ShouldSuppressClick())
+            {
+                return; // release after long-press is not a click
+            }
+            var screen = _router.CurrentScreen;
+            if (screen == null) return;
+            screen.OnKeyUp(key); // Ok click handling lives in the focused widget
+        }
+
+        /// <summary>Back 250ms debounce (Appendix C) then Router.BackAsync.</summary>
+        private async void HandleBackKeyDown()
+        {
+            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (nowMs - _lastBackAtMs < 250)
+            {
+                return;
+            }
+            _lastBackAtMs = nowMs;
+            await _router.BackAsync();
         }
     }
 }
