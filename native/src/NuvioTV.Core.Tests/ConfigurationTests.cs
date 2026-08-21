@@ -7,6 +7,14 @@ using Xunit;
 
 namespace NuvioTV.Core.Tests
 {
+    /// <summary>
+    /// Classes mutating the static AppConfig must share this collection so xUnit
+    /// never runs them concurrently.
+    /// </summary>
+    [CollectionDefinition("StaticConfig")]
+    public class StaticConfigCollection { }
+
+    [Collection("StaticConfig")]
     public class ConfigurationTests
     {
         private const string FixtureJson = @"
