@@ -20,7 +20,7 @@ namespace NuvioTV.Core.Models
         public string InfoHash { get; set; }
 
         [JsonPropertyName("fileIdx")]
-        public int FileIdx { get; set; }
+        public int? FileIdx { get; set; }
 
         [JsonPropertyName("filename")]
         public string Filename { get; set; }
